@@ -287,7 +287,7 @@ export default function ARIA() {
   const [conversationId, setConversationId] = useState<number | null | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, type: null, data: null });
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  // voice input is now inline — no modal needed
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -488,15 +488,18 @@ export default function ARIA() {
                   <span className="truncate flex-1">
                     {(conv.messages as unknown[])?.length ? `Conversation ${conv.id}` : `Chat ${conv.id}`}
                   </span>
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={0}
                     className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteConversationMutation.mutate({ id: conv.id });
                     }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteConversationMutation.mutate({ id: conv.id }); } }}
                   >
                     <Trash2 className="w-3 h-3" />
-                  </button>
+                  </div>
                 </button>
               ))}
             </div>
@@ -651,14 +654,10 @@ export default function ARIA() {
                 rows={1}
               />
               <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => setVoiceOpen(true)}
-                >
-                  <Mic className="w-4 h-4" />
-                </Button>
+                <VoiceInput
+                  onTranscript={(text) => setInput(prev => prev ? prev + " " + text : text)}
+                  disabled={isThinking}
+                />
                 <Button
                   size="icon"
                   className="w-8 h-8 bg-primary hover:bg-primary/90 rounded-xl"
@@ -685,15 +684,7 @@ export default function ARIA() {
         onSendMessage={handleSend}
       />
 
-      {/* ── Voice Input ───────────────────────────────────────────────────── */}
-      <VoiceInput
-        open={voiceOpen}
-        onClose={() => setVoiceOpen(false)}
-        onTranscript={(text) => {
-          setInput(text);
-          setVoiceOpen(false);
-        }}
-      />
+      {/* Voice input is now inline in the chat bar */}
     </div>
   );
 }

@@ -1,98 +1,72 @@
-import { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Loader2 } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Mic, Loader2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
 interface VoiceInputProps {
-  open: boolean;
-  onClose: () => void;
   onTranscript: (text: string) => void;
+  disabled?: boolean;
 }
 
-export default function VoiceInput({ open, onClose, onTranscript }: VoiceInputProps) {
-  const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [audioLevel, setAudioLevel] = useState(0);
+type VoiceState = "idle" | "listening" | "processing";
+
+const SILENCE_THRESHOLD = 0.012; // RMS below this = silence
+const SILENCE_DURATION_MS = 1600; // stop after 1.6s of silence
+const MIN_SPEECH_MS = 500;        // ignore blips shorter than 500ms
+
+export default function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
+  const [state, setState] = useState<VoiceState>("idle");
+  const [volume, setVolume] = useState(0);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const animFrameRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const speechStartRef = useRef<number>(0);
+  const animFrameRef = useRef<number>(0);
+  const streamRef = useRef<MediaStream | null>(null);
+  const hasSpeechRef = useRef(false);
 
   const transcribeMutation = trpc.voice.transcribe.useMutation({
     onSuccess: (data) => {
-      setIsProcessing(false);
-      if (data.text) {
-        onTranscript(data.text);
+      if (data?.text?.trim()) {
+        onTranscript(data.text.trim());
+      } else {
+        toast.info("Couldn't catch that — try again");
       }
+      setState("idle");
     },
-    onError: (err) => {
-      setIsProcessing(false);
-      toast.error("Transcription failed: " + err.message);
-    }
+    onError: () => {
+      toast.error("Voice transcription failed");
+      setState("idle");
+    },
   });
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const audioCtx = new AudioContext();
-      const source = audioCtx.createMediaStreamSource(stream);
-      const analyser = audioCtx.createAnalyser();
-      analyser.fftSize = 256;
-      source.connect(analyser);
-      analyserRef.current = analyser;
+  const cleanup = useCallback(() => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = null;
+    hasSpeechRef.current = false;
+    try { analyserRef.current?.disconnect(); } catch {}
+    try { audioCtxRef.current?.close(); } catch {}
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    setVolume(0);
+  }, []);
 
-      const mr = new MediaRecorder(stream, { mimeType: "audio/webm" });
-      mediaRecorderRef.current = mr;
-      chunksRef.current = [];
+  const finishRecording = useCallback(async (recorder: MediaRecorder) => {
+    cleanup();
+    setState("processing");
 
-      mr.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
-
-      mr.start(100);
-      setIsRecording(true);
-
-      const updateLevel = () => {
-        const data = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(data);
-        const avg = data.reduce((a, b) => a + b, 0) / data.length;
-        setAudioLevel(avg / 128);
-        animFrameRef.current = requestAnimationFrame(updateLevel);
-      };
-      updateLevel();
-    } catch {
-      toast.error("Microphone access denied");
-    }
-  };
-
-  const stopRecording = async () => {
-    if (!mediaRecorderRef.current) return;
-    cancelAnimationFrame(animFrameRef.current);
-    setAudioLevel(0);
-
-    mediaRecorderRef.current.stop();
-    mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
-    setIsRecording(false);
-    setIsProcessing(true);
-
-    await new Promise<void>(resolve => {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.onstop = () => resolve();
-      } else {
-        resolve();
-      }
+    await new Promise<void>(res => {
+      recorder.onstop = () => res();
+      if (recorder.state !== "inactive") recorder.stop();
+      else res();
     });
 
     const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-    if (blob.size > 16 * 1024 * 1024) {
-      toast.error("Recording too long (max 16MB)");
-      setIsProcessing(false);
-      return;
-    }
+    if (blob.size < 1000) { setState("idle"); return; }
 
-    // Upload to storage then transcribe
     const formData = new FormData();
     formData.append("file", blob, "voice.webm");
 
@@ -101,70 +75,125 @@ export default function VoiceInput({ open, onClose, onTranscript }: VoiceInputPr
       const { url } = await res.json() as { url: string };
       transcribeMutation.mutate({ audioUrl: url, language: "en" });
     } catch {
-      // Fallback: use base64 data URL for small recordings
+      // Fallback: base64 for small recordings
       const reader = new FileReader();
       reader.onload = () => {
-        const dataUrl = reader.result as string;
-        transcribeMutation.mutate({ audioUrl: dataUrl });
+        transcribeMutation.mutate({ audioUrl: reader.result as string });
       };
       reader.readAsDataURL(blob);
     }
-  };
+  }, [cleanup, transcribeMutation]);
 
-  useEffect(() => {
-    if (!open) {
-      if (isRecording) stopRecording();
-      setIsRecording(false);
-      setIsProcessing(false);
+  const startRecording = useCallback(async () => {
+    if (state !== "idle" || disabled) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyserRef.current = analyser;
+      analyser.fftSize = 512;
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      const dataArray = new Float32Array(analyser.fftSize);
+      speechStartRef.current = Date.now();
+      hasSpeechRef.current = false;
+
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = recorder;
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.start(100);
+      setState("listening");
+
+      const tick = () => {
+        analyser.getFloatTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+        const rms = Math.sqrt(sum / dataArray.length);
+        setVolume(Math.min(rms * 18, 1));
+
+        if (rms > SILENCE_THRESHOLD) {
+          hasSpeechRef.current = true;
+          if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null; }
+        } else if (hasSpeechRef.current && !silenceTimerRef.current) {
+          silenceTimerRef.current = setTimeout(() => {
+            const dur = Date.now() - speechStartRef.current;
+            if (dur > MIN_SPEECH_MS) {
+              finishRecording(recorder);
+            } else {
+              hasSpeechRef.current = false;
+              silenceTimerRef.current = null;
+            }
+          }, SILENCE_DURATION_MS);
+        }
+
+        animFrameRef.current = requestAnimationFrame(tick);
+      };
+      animFrameRef.current = requestAnimationFrame(tick);
+
+    } catch {
+      toast.error("Microphone access denied");
+      setState("idle");
     }
-  }, [open]);
+  }, [state, disabled, finishRecording]);
+
+  const handleClick = useCallback(() => {
+    if (state === "idle") startRecording();
+    else if (state === "listening") {
+      const recorder = mediaRecorderRef.current;
+      if (recorder) finishRecording(recorder);
+    }
+  }, [state, startRecording, finishRecording]);
+
+  useEffect(() => () => cleanup(), [cleanup]);
+
+  const bars = 5;
+  const isListening = state === "listening";
+  const isProcessing = state === "processing";
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Voice Input</DialogTitle>
-        </DialogHeader>
-        <div className="flex flex-col items-center gap-6 py-4">
-          {/* Visualizer */}
-          <div className="relative w-24 h-24 flex items-center justify-center">
-            {isRecording && (
-              <>
-                <div
-                  className="absolute inset-0 rounded-full bg-destructive/20 transition-transform duration-100"
-                  style={{ transform: `scale(${1 + audioLevel * 0.5})` }}
-                />
-                <div
-                  className="absolute inset-2 rounded-full bg-destructive/10 transition-transform duration-100"
-                  style={{ transform: `scale(${1 + audioLevel * 0.3})` }}
-                />
-              </>
-            )}
-            <Button
-              size="icon"
-              className={`w-16 h-16 rounded-full ${isRecording ? "bg-destructive hover:bg-destructive/90" : "bg-primary hover:bg-primary/90"}`}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : isRecording ? (
-                <MicOff className="w-6 h-6" />
-              ) : (
-                <Mic className="w-6 h-6" />
-              )}
-            </Button>
-          </div>
-
-          <p className="text-sm text-muted-foreground text-center">
-            {isProcessing ? "Transcribing..." : isRecording ? "Recording... tap to stop" : "Tap to start recording"}
-          </p>
-
-          <Button variant="outline" onClick={onClose} className="w-full">
-            Cancel
-          </Button>
+    <button
+      onClick={handleClick}
+      disabled={disabled || isProcessing}
+      title={isListening ? "Listening… click to stop" : isProcessing ? "Processing…" : "Click to speak"}
+      className={`relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 flex-shrink-0
+        ${state === "idle" ? "text-gray-400 hover:text-violet-600 hover:bg-violet-50" : ""}
+        ${isListening ? "bg-red-500 text-white shadow-lg shadow-red-200 scale-110" : ""}
+        ${isProcessing ? "bg-violet-100 text-violet-400 cursor-wait" : ""}
+        ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
+      `}
+    >
+      {isProcessing ? (
+        <Loader2 className="w-5 h-5 animate-spin" />
+      ) : isListening ? (
+        <div className="flex items-end gap-[2px] h-4 w-5">
+          {Array.from({ length: bars }).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 bg-white rounded-full"
+              style={{
+                height: `${Math.max(20, Math.min(100, 30 + volume * 70 + Math.sin(Date.now() / 150 + i * 1.2) * 20))}%`,
+                animation: `waveBar 0.35s ease-in-out ${i * 0.07}s infinite alternate`,
+              }}
+            />
+          ))}
         </div>
-      </DialogContent>
-    </Dialog>
+      ) : (
+        <Mic className="w-5 h-5" />
+      )}
+
+      {isListening && (
+        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-300 rounded-full animate-ping" />
+      )}
+
+      <style>{`
+        @keyframes waveBar { from { transform: scaleY(0.3); } to { transform: scaleY(1); } }
+      `}</style>
+    </button>
   );
 }

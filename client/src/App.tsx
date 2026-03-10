@@ -37,7 +37,7 @@ import Home from "./pages/Home";
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={ARIA} />
+      <Route path={"/"} component={Home} />
       <Route path={"/p/:slug"} component={LandingPagePublic} />
       <Route path={"/report/:token"} component={ReportPublic} />
       <Route path={"/form/:slug"} component={FormPublic} />
@@ -65,7 +65,7 @@ function Router() {
       <Route path={"/settings"} component={Settings} />
       <Route path={"/billing"} component={Billing} />
       <Route path={"/admin"} component={Admin} />
-      <Route path={"/home"} component={Home} />
+      <Route path={"/aria"} component={ARIA} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
@@ -75,7 +75,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster richColors position="top-right" />
           <Router />

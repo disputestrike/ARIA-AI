@@ -1,6 +1,10 @@
 // server/aria/llm-provider.ts
 // Anthropic Claude as primary LLM, OpenAI as fallback
 // Normalises both APIs into a single interface compatible with ARIA's tool-calling agent loop
+//
+// KEY DESIGN: We store the ENTIRE Anthropic-native message history internally.
+// The agent loop uses LLMMessage[] only for user/assistant text turns.
+// Tool-use turns are stored as AnthropicNativeMessage[] in a parallel array.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { invokeLLM as openAIFallback } from "../_core/llm";
@@ -10,7 +14,7 @@ const anthropic = new Anthropic({
 });
 
 // Claude model to use — claude-3-5-sonnet is the best balance of speed + intelligence
-const CLAUDE_MODEL = "claude-3-5-sonnet-20241022";
+const CLAUDE_MODEL = "claude-sonnet-4-5-20250929";
 const CLAUDE_MAX_TOKENS = 8192;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,6 +23,8 @@ export interface LLMMessage {
   role: "system" | "user" | "assistant" | "tool";
   content: string | unknown;
   tool_calls?: AnthropicToolCall[];
+  // Internal: raw Anthropic content blocks for assistant messages with tool_use
+  _anthropicContent?: Anthropic.ContentBlock[];
 }
 
 export interface AnthropicToolCall {
@@ -50,7 +56,7 @@ export interface LLMResponse {
   }>;
 }
 
-// ─── Anthropic → OpenAI normaliser ───────────────────────────────────────────
+// ─── Tool conversion ──────────────────────────────────────────────────────────
 
 function convertToolsToAnthropic(tools: LLMTool[]): Anthropic.Tool[] {
   return tools.map((t) => ({
@@ -59,6 +65,16 @@ function convertToolsToAnthropic(tools: LLMTool[]): Anthropic.Tool[] {
     input_schema: t.function.parameters as Anthropic.Tool["input_schema"],
   }));
 }
+
+// ─── Message conversion ───────────────────────────────────────────────────────
+//
+// The Anthropic API requires:
+//   assistant turn: { role: "assistant", content: [{ type: "tool_use", id: "toolu_xxx", ... }] }
+//   user turn:      { role: "user",      content: [{ type: "tool_result", tool_use_id: "toolu_xxx", ... }] }
+//
+// We store the raw Anthropic content blocks on assistant messages (_anthropicContent)
+// so that when we reconstruct the history, the tool_use.id values are ALWAYS preserved
+// and will exactly match the tool_use_id in the subsequent tool_result blocks.
 
 function convertMessagesToAnthropic(
   messages: LLMMessage[]
@@ -73,54 +89,78 @@ function convertMessagesToAnthropic(
     }
 
     if (msg.role === "tool") {
-      // Tool result — attach to previous assistant message as tool_result block
+      // Tool result — must follow an assistant message that had tool_use blocks.
+      // We need to match the tool_use_id from the stored _anthropicContent.
+      const toolUseId = extractToolCallId(msg.content);
+      const toolContent = extractToolContent(msg.content);
+
+      const toolResultBlock: Anthropic.ToolResultBlockParam = {
+        type: "tool_result",
+        tool_use_id: toolUseId,
+        content: toolContent,
+      };
+
+      // Append to the last user message if it's already a tool_result group,
+      // otherwise create a new user message
       const prev = converted[converted.length - 1];
       if (prev && prev.role === "user" && Array.isArray(prev.content)) {
-        // Already a user message with tool results
-        (prev.content as Anthropic.ToolResultBlockParam[]).push({
-          type: "tool_result",
-          tool_use_id: extractToolCallId(msg.content),
-          content: extractToolContent(msg.content),
-        });
+        (prev.content as Anthropic.ToolResultBlockParam[]).push(toolResultBlock);
       } else {
         converted.push({
           role: "user",
-          content: [
-            {
-              type: "tool_result",
-              tool_use_id: extractToolCallId(msg.content),
-              content: extractToolContent(msg.content),
-            } as Anthropic.ToolResultBlockParam,
-          ],
+          content: [toolResultBlock],
         });
       }
       continue;
     }
 
-    if (msg.role === "assistant" && msg.tool_calls && msg.tool_calls.length > 0) {
-      // Assistant message with tool calls
-      const blocks: Anthropic.ContentBlock[] = [];
-
-      if (msg.content) {
-        blocks.push({ type: "text", text: typeof msg.content === "string" ? msg.content : "", citations: [] } as unknown as Anthropic.ContentBlock);
+    if (msg.role === "assistant") {
+      // If we have the raw Anthropic content blocks stored, use them directly.
+      // This guarantees tool_use.id values are preserved exactly.
+      if (msg._anthropicContent && msg._anthropicContent.length > 0) {
+        converted.push({
+          role: "assistant",
+          content: msg._anthropicContent,
+        });
+        continue;
       }
 
-      for (const tc of msg.tool_calls) {
-        blocks.push({
-          type: "tool_use",
-          id: tc.id,
-          name: tc.function.name,
-          input: JSON.parse(tc.function.arguments || "{}"),
-        } as Anthropic.ToolUseBlock);
+      // If there are tool_calls (OpenAI format), convert them
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        const blocks: Anthropic.ContentBlock[] = [];
+
+        if (msg.content && typeof msg.content === "string" && msg.content.trim()) {
+          blocks.push({ type: "text", text: msg.content } as Anthropic.TextBlock);
+        }
+
+        for (const tc of msg.tool_calls) {
+          const toolUseId = tc.id && tc.id.trim() ? tc.id : `toolu_${tc.function.name}_${Date.now()}`;
+          let toolInput: Record<string, unknown> = {};
+          try { toolInput = JSON.parse(tc.function.arguments || "{}"); } catch { toolInput = {}; }
+
+          blocks.push({
+            type: "tool_use",
+            id: toolUseId,
+            name: tc.function.name,
+            input: toolInput,
+          } as Anthropic.ToolUseBlock);
+        }
+
+        converted.push({ role: "assistant", content: blocks });
+        continue;
       }
 
-      converted.push({ role: "assistant", content: blocks });
+      // Regular assistant text message
+      converted.push({
+        role: "assistant",
+        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+      });
       continue;
     }
 
-    // Regular user/assistant message
+    // Regular user message
     converted.push({
-      role: msg.role as "user" | "assistant",
+      role: "user",
       content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
     });
   }
@@ -131,8 +171,9 @@ function convertMessagesToAnthropic(
 function extractToolCallId(content: unknown): string {
   if (typeof content === "string") {
     try {
-      const parsed = JSON.parse(content);
-      return parsed.tool_call_id ?? "unknown";
+      const parsed = JSON.parse(content) as Record<string, unknown>;
+      const id = parsed._tool_call_id ?? parsed.tool_call_id;
+      return typeof id === "string" && id.trim() ? id : "unknown";
     } catch {
       return "unknown";
     }
@@ -143,9 +184,9 @@ function extractToolCallId(content: unknown): string {
 function extractToolContent(content: unknown): string {
   if (typeof content === "string") {
     try {
-      const parsed = JSON.parse(content);
-      // Remove tool_call_id from the content we send back
-      const { tool_call_id, ...rest } = parsed;
+      const parsed = JSON.parse(content) as Record<string, unknown>;
+      const { _tool_call_id, tool_call_id, ...rest } = parsed;
+      void _tool_call_id;
       void tool_call_id;
       return JSON.stringify(rest);
     } catch {
@@ -155,7 +196,9 @@ function extractToolContent(content: unknown): string {
   return JSON.stringify(content);
 }
 
-function convertAnthropicResponseToOpenAI(response: Anthropic.Message): LLMResponse {
+function convertAnthropicResponseToOpenAI(response: Anthropic.Message): LLMResponse & {
+  _anthropicContent: Anthropic.ContentBlock[];
+} {
   const toolCalls: AnthropicToolCall[] = [];
   let textContent = "";
 
@@ -175,6 +218,7 @@ function convertAnthropicResponseToOpenAI(response: Anthropic.Message): LLMRespo
   }
 
   return {
+    _anthropicContent: response.content,
     choices: [
       {
         message: {
@@ -195,7 +239,7 @@ export async function invokeARIALLM(params: {
   tools?: LLMTool[];
   tool_choice?: "auto" | "none" | "required";
   response_format?: unknown;
-}): Promise<LLMResponse> {
+}): Promise<LLMResponse & { _anthropicContent?: Anthropic.ContentBlock[] }> {
   // Try Anthropic Claude first
   if (process.env.ANTHROPIC_API_KEY) {
     try {
@@ -214,7 +258,6 @@ export async function invokeARIALLM(params: {
       if (params.tools && params.tools.length > 0) {
         anthropicParams.tools = convertToolsToAnthropic(params.tools);
 
-        // Map tool_choice
         if (params.tool_choice === "none") {
           anthropicParams.tool_choice = { type: "auto" };
         } else if (params.tool_choice === "required") {
@@ -228,7 +271,7 @@ export async function invokeARIALLM(params: {
       console.log("[ARIA LLM] Claude response — stop_reason:", response.stop_reason, "blocks:", response.content.length);
       return convertAnthropicResponseToOpenAI(response);
     } catch (err) {
-      console.warn("[ARIA LLM] Claude failed, falling back to OpenAI:", err);
+      console.warn("[ARIA LLM] Claude failed, falling back to OpenAI:", (err as Error).message);
     }
   }
 
@@ -257,7 +300,6 @@ export async function invokeStructuredLLM<T>(params: {
   schema: Record<string, unknown>;
   schemaName: string;
 }): Promise<T> {
-  // Try Anthropic Claude with JSON mode
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       const response = await anthropic.messages.create({
@@ -268,16 +310,14 @@ export async function invokeStructuredLLM<T>(params: {
       });
 
       const text = response.content.find((b) => b.type === "text")?.text ?? "{}";
-      // Extract JSON from response (Claude sometimes wraps in ```json)
       const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) ?? text.match(/(\{[\s\S]*\})/);
       const jsonStr = jsonMatch ? jsonMatch[1] : text;
       return JSON.parse(jsonStr) as T;
     } catch (err) {
-      console.warn("[ARIA LLM] Claude structured call failed, falling back to OpenAI:", err);
+      console.warn("[ARIA LLM] Claude structured call failed, falling back to OpenAI:", (err as Error).message);
     }
   }
 
-  // OpenAI fallback with JSON schema
   const result = await openAIFallback({
     messages: [
       { role: "system", content: params.systemPrompt },

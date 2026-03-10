@@ -1,6 +1,11 @@
 // server/aria/agent.ts
 // ARIA Agent Loop — Anthropic Claude primary, OpenAI fallback
 // Implements: load memory → build messages → invoke LLM with tools → dispatch tools → save memory → return
+//
+// CRITICAL: When Claude returns tool_use blocks, we store the raw Anthropic content
+// blocks on the assistant message (_anthropicContent). This ensures that when we
+// reconstruct the message history on the next iteration, the tool_use.id values
+// are preserved EXACTLY and match the tool_use_id in the tool_result blocks.
 
 import { invokeARIALLM, type LLMMessage } from "./llm-provider";
 import { ARIA_SYSTEM_PROMPT } from "./system-prompt";
@@ -64,13 +69,26 @@ export async function runARIAAgent(
     });
 
     const choice = response.choices[0];
+    if (!choice) {
+      finalReply = "I encountered an issue processing your request. Please try again.";
+      break;
+    }
     const assistantMessage = choice.message;
 
-    // Add assistant message to history
+    // Build the assistant LLMMessage.
+    // IMPORTANT: Store the raw Anthropic content blocks (_anthropicContent) so that
+    // on the next iteration, convertMessagesToAnthropic() can use them directly,
+    // preserving the exact tool_use.id values that Anthropic assigned.
     const assistantLLMMessage: LLMMessage = {
       role: "assistant",
       content: assistantMessage.content ?? "",
-      ...(assistantMessage.tool_calls ? { tool_calls: assistantMessage.tool_calls } : {}),
+      ...(assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0
+        ? { tool_calls: assistantMessage.tool_calls }
+        : {}),
+      // Attach raw Anthropic content blocks if available (set by convertAnthropicResponseToOpenAI)
+      ...("_anthropicContent" in response && response._anthropicContent
+        ? { _anthropicContent: response._anthropicContent }
+        : {}),
     };
     messages.push(assistantLLMMessage);
 
@@ -93,16 +111,25 @@ export async function runARIAAgent(
         args = {};
       }
 
+      console.log(`[ARIA Agent] Dispatching tool: ${toolName} (id: ${toolCall.id})`);
       const result = await dispatchTool(toolName, args, userId);
       allToolResults.push(result);
       toolCallResults.push({ tool_call_id: toolCall.id, result });
     }
 
-    // 5. Add tool results back to messages (in format both Claude and OpenAI understand)
+    // 5. Add tool results back to messages
+    // The _tool_call_id key is used by convertMessagesToAnthropic() to build
+    // the tool_result block with the correct tool_use_id.
     for (const { tool_call_id, result } of toolCallResults) {
       messages.push({
         role: "tool",
-        content: JSON.stringify({ tool_call_id, ...result }),
+        content: JSON.stringify({
+          _tool_call_id: tool_call_id,
+          status: result.status,
+          data: result.data ?? {},
+          message: result.message ?? null,
+          kind: result.kind,
+        }),
       });
     }
   }

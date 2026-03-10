@@ -130,3 +130,13 @@
 - [x] All middleware wired into server entry point (server/_core/index.ts)
 - [x] Admin route added to App.tsx (/admin)
 - [x] Home landing page route added to App.tsx (/home)
+
+## Phase 11 — Critical Fixes
+- [x] Fix AI agent crash: "Cannot read properties of undefined (reading '0')" — fixed tool_use_id tracking
+- [x] Fix blank landing page (Home.tsx render error) — rebuilt with Bacon-inspired white design
+- [x] Convert entire app from dark theme to all-white/light theme
+- [x] Design and implement new ARIA logo (SVG, professional) — neural network A with violet-to-cyan gradient
+- [x] Modernize voice input: auto-detect speech start/stop, fills textarea, no manual buttons (VAD)
+- [x] Fix Anthropic API crash: "messages.3.content.1.tool_use.id: Field required" — store _anthropicContent on assistant messages to preserve tool_use IDs across loop iterations
+- [x] Update Claude model from unavailable claude-3-5-sonnet-20241022 to claude-sonnet-4-5-20250929
+- [x] Add llm-provider.test.ts with 3 tests covering tool_use_id tracking (12 total tests passing)
