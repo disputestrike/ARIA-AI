@@ -280,3 +280,15 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* ── Hide platform "Made with Manus" badge ────────────────────────────────── */
+[data-manus-badge],
+.manus-badge,
+#manus-badge,
+a[href*="manus.im"][style*="position"],
+a[href*="manus.space"][style*="position"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

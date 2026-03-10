@@ -109,10 +109,10 @@ const NAV_SECTIONS = [
   {
     label: "Manage",
     items: [
-      { icon: Layers, label: "Products", prompt: "Show me my products" },
-      { icon: Palette, label: "Brand", prompt: "Show me my brand kit and voice profiles" },
-      { icon: Users, label: "Team", prompt: "Show me my team members and approvals" },
-      { icon: FileText, label: "Reports", prompt: "Show me my reports" },
+      { icon: Layers, label: "Products", route: "/products" },
+      { icon: Palette, label: "Brand", route: "/brand" },
+      { icon: Users, label: "Team", route: "/team" },
+      { icon: FileText, label: "Reports", route: "/reports" },
     ]
   },
 ];
@@ -605,7 +605,13 @@ export default function ARIA() {
               {section.items.map(item => (
                 <button
                   key={item.label}
-                  onClick={() => handleSend(item.prompt)}
+                  onClick={() => {
+                    if ('route' in item) {
+                      navigate(item.route);
+                    } else {
+                      handleSend(item.prompt);
+                    }
+                  }}
                   className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors text-left"
                 >
                   <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -631,7 +637,7 @@ export default function ARIA() {
               <p className="text-xs text-muted-foreground truncate">{user?.email ?? ""}</p>
             </div>
             <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => handleSend("Show me my account settings")}>
+              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => navigate("/settings")} title="Settings">
                 <Settings className="w-3.5 h-3.5" />
               </Button>
               <Button variant="ghost" size="icon" className="w-7 h-7" onClick={logout}>
@@ -659,7 +665,7 @@ export default function ARIA() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 inline-block" />
               Claude Sonnet 4.5
             </Badge>
-            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => handleSend("Show me my billing and credits")}>
+            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => navigate("/billing")}>
               <CreditCard className="w-3.5 h-3.5" />
               Credits
             </Button>

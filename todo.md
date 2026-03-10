@@ -154,3 +154,9 @@
 - [x] Add file/URL attachment support — Paperclip button uploads PDF/Word/image/audio to S3; Link button or paste-URL attaches URLs; shown as chips in chat
 - [x] Add copy button on every message — hover to reveal, shows checkmark on success
 - [x] Voice input verified working (VoiceInput component wired to textarea)
+
+## Phase 14 — Navigation & Auth
+- [x] Fix sidebar: Settings, Team, Reports, Products, Brand navigate to real pages (not chat) — changed prompt-based items to route-based navigation; Credits button goes to /billing; Settings gear goes to /settings
+- [x] Remove "Made with Manus" badge — CSS rule added to hide platform-injected badge; badge fully disappears on Railway/custom domain deploy
+- [x] Add Google OAuth login button — "Continue with Google" button on landing page hero; getGoogleLoginUrl() added to const.ts
+- [ ] Backfill conversation titles for old "Conversation N" records (low priority — new convos auto-named)
