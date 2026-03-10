@@ -415,7 +415,7 @@ export default function ARIA() {
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-white">
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <aside className={`${sidebarOpen ? "w-64" : "w-0"} transition-all duration-300 overflow-hidden flex-shrink-0 border-r border-gray-200 bg-white flex flex-col h-screen`}>
         <div className="p-4 flex-shrink-0">
@@ -447,7 +447,7 @@ export default function ARIA() {
         <Separator />
 
         {/* Nav */}
-        <ScrollArea className="flex-1 py-2">
+        <div className="flex-1 overflow-y-auto min-h-0 py-2">
           {NAV_SECTIONS.map(section => (
             <div key={section.label} className="mb-2">
               <p className="text-xs font-semibold text-muted-foreground px-4 py-1 uppercase tracking-wider">
@@ -501,7 +501,7 @@ export default function ARIA() {
               ))}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <Separator />
 
@@ -540,7 +540,7 @@ export default function ARIA() {
       </aside>
 
       {/* ── Main Chat Area ────────────────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Header */}
         <header className="h-14 border-b border-border flex items-center px-4 gap-3 flex-shrink-0">
           <Button
@@ -574,7 +574,7 @@ export default function ARIA() {
         </header>
 
         {/* Messages */}
-        <ScrollArea className="flex-1" ref={scrollRef as React.RefObject<HTMLDivElement>}>
+        <div className="flex-1 overflow-y-auto min-h-0" ref={scrollRef as React.RefObject<HTMLDivElement>}>
           <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
             {messages.length === 0 ? (
               /* Welcome Screen */
@@ -631,7 +631,7 @@ export default function ARIA() {
             )}
             {isThinking && <ThinkingIndicator />}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Input Area */}
         <div className="border-t border-border p-4 flex-shrink-0">
