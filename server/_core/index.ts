@@ -7,6 +7,11 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { securityHeaders } from "../middleware/securityHeaders";
+import { apiRateLimit } from "../middleware/rateLimit";
+import { registerStripeRoutes } from "../stripe/routes";
+import { registerSocialOAuthRoutes } from "../integrations/socialOAuth";
+import { startPublisherCron } from "../scheduler/publisherCron";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -30,11 +35,25 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+
+  // Security headers (applied to all routes)
+  app.use(securityHeaders);
+
+  // Stripe webhook MUST be registered before express.json() to preserve raw body
+  registerStripeRoutes(app);
+
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Rate limiting on all /api routes
+  app.use("/api", apiRateLimit);
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Social OAuth routes (Meta, Twitter, LinkedIn, TikTok)
+  registerSocialOAuthRoutes(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -55,6 +74,11 @@ async function startServer() {
 
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  }
+
+  // Start the scheduled posts publisher cron (every 15 minutes)
+  if (process.env.NODE_ENV !== "test") {
+    startPublisherCron(15 * 60 * 1000);
   }
 
   server.listen(port, () => {
