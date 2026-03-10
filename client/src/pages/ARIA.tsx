@@ -1,5 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
+import { useLocation } from "wouter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -284,6 +285,7 @@ const SUGGESTIONS = [
 // ─── Main ARIA Component ──────────────────────────────────────────────────────
 export default function ARIA() {
   const { user, loading, isAuthenticated, logout } = useAuth();
+  const [, navigate] = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
@@ -382,36 +384,9 @@ export default function ARIA() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center space-y-6 max-w-md px-4">
-          <img src={ARIA_LOGO_URL} alt="ARIA" className="w-20 h-20 rounded-2xl object-contain mx-auto" />
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Welcome to ARIA</h1>
-            <p className="text-muted-foreground">
-              Your AI-first marketing co-pilot. One conversation replaces 35 marketing tools.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-left">
-            {["Build campaigns", "Write content", "Analyze competitors", "Schedule posts",
-              "Run DSP ads", "Manage reviews", "Track analytics", "Automate workflows"].map(f => (
-              <div key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
-                {f}
-              </div>
-            ))}
-          </div>
-          <Button
-            size="lg"
-            className="w-full gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90"
-            onClick={() => window.location.href = getLoginUrl()}
-          >
-            <Sparkles className="w-5 h-5" />
-            Start with ARIA
-          </Button>
-        </div>
-      </div>
-    );
+    // Redirect to landing page instead of showing a bare screen
+    navigate("/");
+    return null;
   }
 
   return (

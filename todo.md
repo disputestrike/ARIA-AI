@@ -145,3 +145,4 @@
 - [x] Fix sidebar: not scrolling, navigation items not clickable — replaced ScrollArea with overflow-y-auto on bounded flex-1 container, set h-screen on aside
 - [x] Update ARIA logo: replaced Brain/Sparkles placeholder icons with real CDN logo image in ARIASidebar, ARIALayout, and ARIA.tsx (all 6 occurrences)
 - [x] Fix global scrolling broken everywhere in the app — root cause was .flex { min-height: 0 } override in index.css collapsing all flex containers; removed the override and replaced ScrollArea with overflow-y-auto divs in ARIA.tsx sidebar and messages area
+- [x] Fix routing: / shows full landing page, /aria shows the chat app, unauthenticated /aria now redirects to / (landing page) instead of showing a bare screen
