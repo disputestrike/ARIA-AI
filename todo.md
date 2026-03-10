@@ -164,3 +164,23 @@
 ## Phase 15 — Auth Flow Fixes
 - [x] Fix logout: logout button now calls window.location.href="/" after logout for clean full-page redirect to landing page
 - [x] Fix unauthenticated /aria: shows ARIA logo + "Redirecting..." while window.location.href="/" fires, never shows bare screen
+
+## Phase 16 — DAG Parallel Agent Architecture
+- [x] Create server/aria/dag/types.ts — AgentPlan, CampaignBrief, AgentResult, DAGResult, ReviewReport interfaces
+- [x] Create server/aria/dag/orchestrator.ts — analyzeIntent, runDAG, assembleResults
+- [x] Create server/aria/dag/agents/strategy.ts — StrategyAgent (always runs first)
+- [x] Create server/aria/dag/agents/content.ts — ContentAgent (22 content types)
+- [x] Create server/aria/dag/agents/email.ts — EmailAgent (sequences)
+- [x] Create server/aria/dag/agents/creative.ts — CreativeAgent (Meta/Google/LinkedIn/TikTok)
+- [x] Create server/aria/dag/agents/video.ts — VideoAgent (script+voiceover+visuals+storyboard)
+- [x] Create server/aria/dag/agents/landingpage.ts — LandingPageAgent (page+funnel+A/B)
+- [x] Create server/aria/dag/agents/seo.ts — SEOAgent (audit+keywords+technical)
+- [x] Create server/aria/dag/agents/social.ts — SocialAgent (schedule+queue+variants)
+- [x] Create server/aria/dag/agents/dsp.ts — DSPAgent (build+launch+targeting)
+- [x] Create server/aria/dag/agents/crm.ts — CRMAgent (leads+deals+scoring)
+- [x] Create server/aria/dag/agents/review.ts — ReviewAgent (audit+rewrite+consistency score)
+- [x] Wire DAG into server/aria/agent.ts (additive only — analyzeIntent() checks intent before sequential loop)
+- [x] Add DAGSummaryCard component to client/src/components/DAGSummaryCard.tsx
+- [x] Render DAGSummaryCard in ARIA.tsx after DAG responses
+- [x] Return dagSummary from routers.ts chat procedure
+- [x] Zero TypeScript errors, 12/12 tests passing

@@ -13,6 +13,8 @@ import { loadMemory, saveMemory, buildMemoryContext } from "./memory";
 import type { ToolResult } from "./memory";
 import { ARIA_TOOLS } from "./tools/definitions";
 import { dispatchTool } from "./tools/dispatcher";
+import { analyzeIntent, runDAG } from "./dag/orchestrator";
+import type { DAGSummary } from "./dag/types";
 
 export interface ARIAMessage {
   role: "user" | "assistant";
@@ -23,6 +25,7 @@ export interface ARIAResponse {
   reply: string;
   toolResults: ToolResult[];
   updatedMessages: ARIAMessage[];
+  dagSummary?: DAGSummary;
 }
 
 const MAX_TOOL_ROUNDS = 8; // Safety limit on agentic loops
@@ -32,6 +35,28 @@ export async function runARIAAgent(
   userMessage: string,
   conversationHistory?: ARIAMessage[]
 ): Promise<ARIAResponse> {
+  // 0. Check if this message triggers the DAG parallel agent architecture
+  const plan = analyzeIntent(userMessage);
+  if (plan.requiresDAG) {
+    console.log(`[ARIA Agent] DAG triggered — intent: ${plan.intent}, agents: ${plan.agentsToRun.join(", ")}`);
+    const dagResult = await runDAG(userId, userMessage, plan);
+    const history: ARIAMessage[] = conversationHistory ?? [];
+    const updatedMessages: ARIAMessage[] = [
+      ...history,
+      { role: "user", content: userMessage },
+      { role: "assistant", content: dagResult.finalResponse },
+    ];
+    // Save memory with DAG result
+    const memory = await loadMemory(userId);
+    await saveMemory(userId, memory, [], updatedMessages.slice(-40));
+    return {
+      reply: dagResult.finalResponse,
+      toolResults: [],
+      updatedMessages,
+      dagSummary: dagResult.dagSummary,
+    };
+  }
+
   // 1. Load persistent memory
   const memory = await loadMemory(userId);
   const memoryContext = buildMemoryContext(memory);

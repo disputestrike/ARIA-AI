@@ -24,6 +24,7 @@ import ARIADrawer from "@/components/ARIADrawer";
 import MemoryBar from "@/components/MemoryBar";
 import VoiceInput from "@/components/VoiceInput";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { DAGSummaryCard } from "@/components/DAGSummaryCard";
 
 // CDN URL for the professional ARIA neural-network logo
 const ARIA_LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663191442451/Xo3BLWEeUiTMAmf4aBe7Nf/aria-logo_1be63f43.png";
@@ -44,6 +45,8 @@ interface Message {
   toolResults?: ToolResult[];
   attachments?: Attachment[];
   timestamp: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  dagSummary?: any | null;
 }
 
 interface ToolResult {
@@ -252,6 +255,11 @@ function ChatMessage({ msg, onAction }: { msg: Message; onAction: (type: string,
             </div>
           )}
         </div>
+        {msg.dagSummary && msg.dagSummary.type === "dag_summary" && (
+          <div className="w-full">
+            <DAGSummaryCard summary={msg.dagSummary} />
+          </div>
+        )}
         {msg.toolResults && msg.toolResults.length > 0 && (
           <div className="space-y-2 w-full">
             {msg.toolResults.map((r, i) => (
@@ -380,6 +388,8 @@ export default function ARIA() {
         content: data.reply,
         toolResults: (data.toolResults as ToolResult[] | undefined) ?? [],
         timestamp: new Date(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        dagSummary: (data as any).dagSummary ?? null,
       };
       setMessages(prev => [...prev, assistantMsg]);
       setIsThinking(false);

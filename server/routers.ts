@@ -63,7 +63,7 @@ const ariaRouter = router({
         const [inserted] = await db.insert(chatConversations).values({ userId: ctx.user.id, title: convTitle ?? undefined, messages: newHistory });
         convId = (inserted as { insertId: number }).insertId;
       }
-      return { reply: result.reply, conversationId: convId ?? null, title: convTitle, toolsUsed: result.toolResults?.map((t) => t.kind) ?? [], toolResults: result.toolResults ?? [], artifacts: [] };
+      return { reply: result.reply, conversationId: convId ?? null, title: convTitle, toolsUsed: result.toolResults?.map((t) => t.kind) ?? [], toolResults: result.toolResults ?? [], artifacts: [], dagSummary: result.dagSummary ?? null };
     }),
   conversations: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb(); if (!db) return [];
