@@ -26,7 +26,7 @@ export default function Campaigns() {
         <Button
           size="sm"
           className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90"
-          onClick={() => navigate("/?q=Build+me+a+new+marketing+campaign")}
+          onClick={() => navigate("/aria?q=Build+me+a+new+marketing+campaign")}
         >
           <Sparkles className="w-3.5 h-3.5" /> Ask ARIA
         </Button>
@@ -90,7 +90,7 @@ export default function Campaigns() {
                         size="sm"
                         variant="outline"
                         className="gap-1"
-                        onClick={() => navigate(`/?q=Analyze+campaign+${campaign.id}`)}
+                        onClick={() => navigate(`/aria?q=Analyze+campaign+${campaign.id}`)}
                       >
                         <TrendingUp className="w-3.5 h-3.5" /> Analyze
                       </Button>
@@ -110,7 +110,7 @@ export default function Campaigns() {
               </p>
               <Button
                 className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90"
-                onClick={() => navigate("/?q=Build+me+a+marketing+campaign")}
+                onClick={() => navigate("/aria?q=Build+me+a+marketing+campaign")}
               >
                 <Sparkles className="w-4 h-4" /> Ask ARIA to Create
               </Button>

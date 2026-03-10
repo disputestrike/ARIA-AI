@@ -11,7 +11,7 @@ export default function Reports() {
 
   return (
     <ARIALayout title="Reports" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Generate+a+comprehensive+marketing+performance+report")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Generate+a+comprehensive+marketing+performance+report")}>
         <Sparkles className="w-3.5 h-3.5" /> Generate Report
       </Button>
     }>
@@ -48,7 +48,7 @@ export default function Reports() {
               <TrendingUp className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No reports yet</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to generate detailed marketing performance reports</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Generate+a+full+marketing+performance+report+for+this+month")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Generate+a+full+marketing+performance+report+for+this+month")}>
                 <Sparkles className="w-4 h-4" /> Generate Report
               </Button>
             </CardContent>

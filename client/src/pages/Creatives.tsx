@@ -12,7 +12,7 @@ export default function Creatives() {
 
   return (
     <ARIALayout title="Ad Creatives" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Generate+ad+creatives+for+my+campaign")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Generate+ad+creatives+for+my+campaign")}>
         <Sparkles className="w-3.5 h-3.5" /> Generate Creative
       </Button>
     }>
@@ -43,7 +43,7 @@ export default function Creatives() {
               <Palette className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No creatives yet</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to generate ad creatives for your campaigns</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Generate+Facebook+and+Instagram+ad+creatives+for+my+product")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Generate+Facebook+and+Instagram+ad+creatives+for+my+product")}>
                 <Sparkles className="w-4 h-4" /> Generate Creatives
               </Button>
             </CardContent>

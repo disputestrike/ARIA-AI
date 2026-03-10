@@ -11,7 +11,7 @@ export default function Competitors() {
 
   return (
     <ARIALayout title="Competitor Intelligence" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Analyze+my+top+competitors")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Analyze+my+top+competitors")}>
         <Sparkles className="w-3.5 h-3.5" /> Analyze
       </Button>
     }>
@@ -33,7 +33,7 @@ export default function Competitors() {
                   </div>
                   {c.positioning && <p className="text-sm text-muted-foreground">{c.positioning}</p>}
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 gap-1 h-7" onClick={() => navigate(`/?q=Deep+dive+competitor+analysis+for+${c.name}`)}>
+                    <Button size="sm" variant="outline" className="flex-1 gap-1 h-7" onClick={() => navigate(`/aria?q=Deep+dive+competitor+analysis+for+${c.name}`)}>
                       <Sparkles className="w-3 h-3" /> Deep Dive
                     </Button>
                   </div>
@@ -47,7 +47,7 @@ export default function Competitors() {
               <Database className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No competitor profiles</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to research and track your competitors</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Research+my+top+3+competitors+and+create+profiles")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Research+my+top+3+competitors+and+create+profiles")}>
                 <Sparkles className="w-4 h-4" /> Research Competitors
               </Button>
             </CardContent>

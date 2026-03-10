@@ -12,7 +12,7 @@ export default function Templates() {
 
   return (
     <ARIALayout title="Templates" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Create+a+reusable+marketing+template")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Create+a+reusable+marketing+template")}>
         <Sparkles className="w-3.5 h-3.5" /> Create Template
       </Button>
     }>
@@ -31,7 +31,7 @@ export default function Templates() {
                     </div>
                     <Badge variant="outline" className="text-xs flex-shrink-0">{t.type}</Badge>
                   </div>
-                  <Button size="sm" variant="outline" className="mt-3 w-full gap-1 h-7" onClick={() => navigate(`/?q=Use+template+${t.id}+to+create+content`)}>
+                  <Button size="sm" variant="outline" className="mt-3 w-full gap-1 h-7" onClick={() => navigate(`/aria?q=Use+template+${t.id}+to+create+content`)}>
                     <Sparkles className="w-3 h-3" /> Use Template
                   </Button>
                 </CardContent>
@@ -44,7 +44,7 @@ export default function Templates() {
               <BookOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No templates saved</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to create reusable templates for your marketing</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Create+email+and+social+media+templates+for+my+brand")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Create+email+and+social+media+templates+for+my+brand")}>
                 <Sparkles className="w-4 h-4" /> Create Templates
               </Button>
             </CardContent>

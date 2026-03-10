@@ -12,7 +12,7 @@ export default function Funnels() {
 
   return (
     <ARIALayout title="Conversion Funnels" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Build+a+conversion+funnel+for+my+product")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Build+a+conversion+funnel+for+my+product")}>
         <Sparkles className="w-3.5 h-3.5" /> Build Funnel
       </Button>
     }>
@@ -41,7 +41,7 @@ export default function Funnels() {
               <GitBranch className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No funnels built</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to design a high-converting sales funnel</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Design+a+complete+sales+funnel+for+my+product")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Design+a+complete+sales+funnel+for+my+product")}>
                 <Sparkles className="w-4 h-4" /> Build Funnel
               </Button>
             </CardContent>

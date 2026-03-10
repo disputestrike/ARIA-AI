@@ -27,7 +27,7 @@ export default function CRM() {
 
   return (
     <ARIALayout title="CRM" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Help+me+manage+my+leads+and+deals")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Help+me+manage+my+leads+and+deals")}>
         <Sparkles className="w-3.5 h-3.5" /> Ask ARIA
       </Button>
     }>
@@ -80,7 +80,7 @@ export default function CRM() {
                 <CardContent className="p-8 text-center">
                   <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-sm text-muted-foreground">No leads yet. Ask ARIA to help you generate leads.</p>
-                  <Button size="sm" className="mt-3 gap-2" onClick={() => navigate("/?q=Help+me+generate+leads+for+my+business")}>
+                  <Button size="sm" className="mt-3 gap-2" onClick={() => navigate("/aria?q=Help+me+generate+leads+for+my+business")}>
                     <Sparkles className="w-3.5 h-3.5" /> Generate Leads
                   </Button>
                 </CardContent>

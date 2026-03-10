@@ -11,7 +11,7 @@ export default function Products() {
 
   return (
     <ARIALayout title="Products" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Add+a+new+product+to+my+catalog")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Add+a+new+product+to+my+catalog")}>
         <Sparkles className="w-3.5 h-3.5" /> Add Product
       </Button>
     }>
@@ -28,7 +28,7 @@ export default function Products() {
                   {p.targetAudience && (
                     <p className="text-xs text-primary mt-2">{p.targetAudience}</p>
                   )}
-                  <Button size="sm" variant="outline" className="mt-3 w-full gap-1 h-7" onClick={() => navigate(`/?q=Create+marketing+campaign+for+product+${p.id}`)}>
+                  <Button size="sm" variant="outline" className="mt-3 w-full gap-1 h-7" onClick={() => navigate(`/aria?q=Create+marketing+campaign+for+product+${p.id}`)}>
                     <Sparkles className="w-3 h-3" /> Market This
                   </Button>
                 </CardContent>
@@ -41,7 +41,7 @@ export default function Products() {
               <Cpu className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No products yet</h3>
               <p className="text-sm text-muted-foreground mb-6">Add your products so ARIA can create targeted campaigns</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Add+my+products+to+the+catalog")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Add+my+products+to+the+catalog")}>
                 <Sparkles className="w-4 h-4" /> Add Products
               </Button>
             </CardContent>

@@ -15,7 +15,7 @@ export default function Automations() {
 
   return (
     <ARIALayout title="Automations" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Create+a+marketing+automation+workflow")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Create+a+marketing+automation+workflow")}>
         <Sparkles className="w-3.5 h-3.5" /> Create Automation
       </Button>
     }>
@@ -47,7 +47,7 @@ export default function Automations() {
               <Workflow className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No automations set up</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to create automated marketing workflows</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Set+up+automated+email+sequences+for+new+leads")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Set+up+automated+email+sequences+for+new+leads")}>
                 <Sparkles className="w-4 h-4" /> Create Automation
               </Button>
             </CardContent>

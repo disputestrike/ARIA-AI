@@ -12,7 +12,7 @@ export default function Video() {
 
   return (
     <ARIALayout title="Video Ads" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Create+a+video+ad+script+for+my+product")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Create+a+video+ad+script+for+my+product")}>
         <Sparkles className="w-3.5 h-3.5" /> Create Video Ad
       </Button>
     }>
@@ -44,7 +44,7 @@ export default function Video() {
               <VideoIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No video ads</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to write and produce video ad scripts</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Write+a+30-second+video+ad+script+for+my+product")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Write+a+30-second+video+ad+script+for+my+product")}>
                 <Sparkles className="w-4 h-4" /> Create Video Ad
               </Button>
             </CardContent>

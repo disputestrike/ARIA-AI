@@ -12,7 +12,7 @@ export default function Email() {
 
   return (
     <ARIALayout title="Email Campaigns" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Build+an+email+campaign")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Build+an+email+campaign")}>
         <Sparkles className="w-3.5 h-3.5" /> Create Campaign
       </Button>
     }>
@@ -34,7 +34,7 @@ export default function Email() {
                       <p className="text-xs text-muted-foreground mt-1">Created: {new Date(e.createdAt).toLocaleDateString()}</p>
                     </div>
                     <div className="flex gap-1.5">
-                      <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => navigate(`/?q=Send+email+campaign+${e.id}`)}>
+                      <Button size="sm" variant="outline" className="gap-1 h-7" onClick={() => navigate(`/aria?q=Send+email+campaign+${e.id}`)}>
                         <Send className="w-3 h-3" /> Send
                       </Button>
                     </div>
@@ -49,7 +49,7 @@ export default function Email() {
               <Mail className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No email campaigns</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to build your first email campaign</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Build+an+email+campaign+for+my+product+launch")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Build+an+email+campaign+for+my+product+launch")}>
                 <Sparkles className="w-4 h-4" /> Create Email Campaign
               </Button>
             </CardContent>

@@ -13,7 +13,7 @@ export default function DSP() {
 
   return (
     <ARIALayout title="DSP Advertising" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Launch+a+programmatic+DSP+ad+campaign")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Launch+a+programmatic+DSP+ad+campaign")}>
         <Sparkles className="w-3.5 h-3.5" /> Launch Campaign
       </Button>
     }>
@@ -26,7 +26,7 @@ export default function DSP() {
                 <p className="text-sm text-muted-foreground mb-1">DSP Wallet Balance</p>
                 <p className="text-3xl font-bold text-foreground">${((wallet?.balanceCents ?? 0) / 100).toFixed(2)}</p>
               </div>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Add+funds+to+my+DSP+wallet")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Add+funds+to+my+DSP+wallet")}>
                 <DollarSign className="w-4 h-4" /> Add Funds
               </Button>
             </div>
@@ -60,7 +60,7 @@ export default function DSP() {
               <Zap className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No DSP campaigns</h3>
               <p className="text-sm text-muted-foreground mb-6">Launch programmatic advertising campaigns with ARIA</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Launch+a+DSP+programmatic+ad+campaign+for+my+product")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Launch+a+DSP+programmatic+ad+campaign+for+my+product")}>
                 <Sparkles className="w-4 h-4" /> Launch DSP Campaign
               </Button>
             </CardContent>

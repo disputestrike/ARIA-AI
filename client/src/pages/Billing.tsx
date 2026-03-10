@@ -3,13 +3,44 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, Zap, TrendingUp, DollarSign, Sparkles } from "lucide-react";
+import { Loader2, CreditCard, Zap, Sparkles, CheckCircle2 } from "lucide-react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
+import { useState } from "react";
+
+const PLANS = [
+  { tier: "starter", name: "Starter", price: "$49", period: "/mo", features: ["500 AI messages/mo", "5 campaigns", "50 content pieces", "3 landing pages", "1 team member"] },
+  { tier: "professional", name: "Professional", price: "$99", period: "/mo", highlight: true, features: ["2,000 AI messages/mo", "25 campaigns", "500 content pieces", "20 landing pages", "5 team members", "DSP access"] },
+  { tier: "business", name: "Business", price: "$199", period: "/mo", features: ["10,000 AI messages/mo", "100 campaigns", "2,000 content pieces", "100 landing pages", "15 team members", "DSP $5k budget"] },
+  { tier: "agency", name: "Agency", price: "$299", period: "/mo", features: ["Unlimited AI messages", "Unlimited campaigns", "Unlimited content", "Unlimited landing pages", "25 team members", "Unlimited DSP"] },
+];
 
 export default function Billing() {
   const [, navigate] = useLocation();
   const { data: billing, isLoading } = trpc.billing.subscription.useQuery();
   const { data: credits } = trpc.billing.credits.useQuery();
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+
+  const checkoutMutation = trpc.billing.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data.url) {
+        toast.success("Redirecting to Stripe checkout...");
+        window.open(data.url, "_blank");
+      } else {
+        toast.error("Could not create checkout session. Configure Stripe Price IDs in Settings → Payment.");
+      }
+      setCheckingOut(null);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Checkout failed. Check Settings → Payment for Stripe configuration.");
+      setCheckingOut(null);
+    },
+  });
+
+  const handleChoosePlan = (tier: string) => {
+    setCheckingOut(tier);
+    checkoutMutation.mutate({ tier, origin: window.location.origin });
+  };
 
   return (
     <ARIALayout title="Billing & Credits">
@@ -42,34 +73,53 @@ export default function Billing() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">No active subscription. Upgrade to unlock all ARIA features.</p>
-                    <div className="grid md:grid-cols-3 gap-3">
-                      {[
-                        { name: "Starter", price: "$49/mo", features: ["5,000 AI credits", "10 campaigns", "Basic analytics"] },
-                        { name: "Growth", price: "$149/mo", features: ["25,000 AI credits", "Unlimited campaigns", "Advanced analytics", "DSP access"], highlight: true },
-                        { name: "Scale", price: "$499/mo", features: ["100,000 AI credits", "Everything in Growth", "White-label", "Dedicated support"] },
-                      ].map(plan => (
-                        <div key={plan.name} className={`p-4 rounded-xl border ${plan.highlight ? "border-primary bg-primary/5" : "border-border bg-secondary/30"}`}>
-                          <p className="font-bold text-foreground">{plan.name}</p>
-                          <p className="text-2xl font-bold text-primary mt-1">{plan.price}</p>
-                          <ul className="mt-3 space-y-1">
-                            {plan.features.map(f => (
-                              <li key={f} className="text-xs text-muted-foreground flex items-center gap-1">
-                                <span className="text-primary">✓</span> {f}
-                              </li>
-                            ))}
-                          </ul>
-                          <Button size="sm" className={`w-full mt-3 ${plan.highlight ? "bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" : ""}`} variant={plan.highlight ? "default" : "outline"}>
-                            Choose {plan.name}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">No active subscription. Choose a plan below to unlock all ARIA features.</p>
                 )}
               </CardContent>
             </Card>
+
+            {/* Plans Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {PLANS.map(plan => (
+                <div
+                  key={plan.tier}
+                  className={`p-5 rounded-xl border flex flex-col gap-3 ${'highlight' in plan && plan.highlight ? "border-primary bg-primary/5 shadow-lg shadow-primary/10" : "border-border bg-card"}`}
+                >
+                  {'highlight' in plan && plan.highlight && (
+                    <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full w-fit">Most Popular</span>
+                  )}
+                  <div>
+                    <p className="font-bold text-foreground">{plan.name}</p>
+                    <p className="text-2xl font-bold text-primary mt-0.5">
+                      {plan.price}<span className="text-sm font-normal text-muted-foreground">{plan.period}</span>
+                    </p>
+                  </div>
+                  <ul className="space-y-1.5 flex-1">
+                    {plan.features.map(f => (
+                      <li key={f} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    size="sm"
+                    className={`w-full mt-1 ${'highlight' in plan && plan.highlight ? "bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" : ""}`}
+                    variant={'highlight' in plan && plan.highlight ? "default" : "outline"}
+                    disabled={checkingOut === plan.tier || billing?.tier === plan.tier}
+                    onClick={() => handleChoosePlan(plan.tier)}
+                  >
+                    {checkingOut === plan.tier ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> Processing...</>
+                    ) : billing?.tier === plan.tier ? (
+                      "Current Plan"
+                    ) : (
+                      `Choose ${plan.name}`
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
 
             {/* Credits */}
             <Card className="bg-card border-border">
@@ -84,7 +134,7 @@ export default function Billing() {
                     <p className="text-3xl font-bold text-foreground">{credits?.balance?.toLocaleString() ?? "0"}</p>
                     <p className="text-sm text-muted-foreground">Credits remaining</p>
                   </div>
-                  <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=How+can+I+get+more+AI+credits")}>
+                  <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=How+can+I+get+more+AI+credits")}>
                     <Sparkles className="w-3.5 h-3.5" /> Get More Credits
                   </Button>
                 </div>

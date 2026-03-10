@@ -12,7 +12,7 @@ export default function ABTests() {
 
   return (
     <ARIALayout title="A/B Tests" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Set+up+an+A/B+test+for+my+landing+page")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Set+up+an+A/B+test+for+my+landing+page")}>
         <Sparkles className="w-3.5 h-3.5" /> Create Test
       </Button>
     }>
@@ -41,7 +41,7 @@ export default function ABTests() {
               <TestTube className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No A/B tests running</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to design and run A/B tests for your campaigns</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Design+an+A/B+test+for+my+email+subject+lines")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Design+an+A/B+test+for+my+email+subject+lines")}>
                 <Sparkles className="w-4 h-4" /> Create A/B Test
               </Button>
             </CardContent>

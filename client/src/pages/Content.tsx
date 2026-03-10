@@ -26,7 +26,7 @@ export default function Content() {
     <ARIALayout
       title="Content"
       actions={
-        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Write+me+a+blog+post")}>
+        <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Write+me+a+blog+post")}>
           <Sparkles className="w-3.5 h-3.5" /> Create Content
         </Button>
       }
@@ -62,7 +62,7 @@ export default function Content() {
                       <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { navigator.clipboard.writeText(c.body ?? ""); toast.success("Copied!"); }}>
                         <Copy className="w-3.5 h-3.5" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => navigate(`/?q=Improve+content+${c.id}`)}>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => navigate(`/aria?q=Improve+content+${c.id}`)}>
                         <RefreshCw className="w-3.5 h-3.5" />
                       </Button>
                     </div>
@@ -77,7 +77,7 @@ export default function Content() {
               <FileText className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No content yet</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to write content for you</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Write+a+blog+post+about+my+product")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Write+a+blog+post+about+my+product")}>
                 <Sparkles className="w-4 h-4" /> Generate Content
               </Button>
             </CardContent>

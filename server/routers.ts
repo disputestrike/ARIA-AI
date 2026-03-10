@@ -12,6 +12,7 @@ import {
 } from "../drizzle/schema";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
+import { TRPCError } from "@trpc/server";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { runARIAAgent } from "./aria/agent";
@@ -278,9 +279,15 @@ const billingRouter = router({
   createCheckoutSession: protectedProcedure.input(z.object({ tier: z.string(), origin: z.string() })).mutation(async ({ ctx, input }) => {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
-    const tierPrices: Record<string, string> = { starter: process.env.STRIPE_PRICE_STARTER ?? "", growth: process.env.STRIPE_PRICE_GROWTH ?? "", agency: process.env.STRIPE_PRICE_AGENCY ?? "" };
+    const tierPrices: Record<string, string> = {
+      starter: process.env.STRIPE_PRICE_STARTER ?? "",
+      professional: process.env.STRIPE_PRICE_PROFESSIONAL ?? "",
+      business: process.env.STRIPE_PRICE_BUSINESS ?? "",
+      agency: process.env.STRIPE_PRICE_AGENCY ?? "",
+      growth: process.env.STRIPE_PRICE_GROWTH ?? process.env.STRIPE_PRICE_PROFESSIONAL ?? "", // legacy alias
+    };
     const priceId = tierPrices[input.tier];
-    if (!priceId) throw new Error("Invalid tier or price not configured");
+    if (!priceId) throw new TRPCError({ code: "BAD_REQUEST", message: `Stripe Price ID not configured for tier '${input.tier}'. Add STRIPE_PRICE_${input.tier.toUpperCase()} in Settings → Payment.` });
     const session = await stripe.checkout.sessions.create({ mode: "subscription", payment_method_types: ["card"], line_items: [{ price: priceId, quantity: 1 }], success_url: `${input.origin}/billing?success=1`, cancel_url: `${input.origin}/billing?canceled=1`, metadata: { userId: String(ctx.user.id), tier: input.tier } });
     return { url: session.url };
   }),

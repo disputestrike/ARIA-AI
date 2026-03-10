@@ -285,19 +285,86 @@ function ChatMessage({ msg, onAction }: { msg: Message; onAction: (type: string,
 }
 
 // ─── Thinking Indicator ───────────────────────────────────────────────────────
-function ThinkingIndicator() {
+const DAG_AGENT_LABELS: Record<string, string> = {
+  strategy: "Strategy",
+  content: "Content",
+  email: "Email",
+  creative: "Creative",
+  video: "Video",
+  landingpage: "Landing Page",
+  seo: "SEO",
+  social: "Social",
+  dsp: "DSP Ads",
+  crm: "CRM",
+  review: "Review",
+};
+
+const DAG_TRIGGERS = /campaign|launch|content|email|video|ads|funnel|social|seo|lead|marketing|brand|product|landing page|drip|sequence|ad copy|creative|audience|competitor|strategy|grow|scale|promote|advertise|convert|optimize|automate/i;
+
+function ThinkingIndicator({ lastUserMessage }: { lastUserMessage?: string }) {
+  const [activeAgents, setActiveAgents] = useState<string[]>([]);
+  const [phaseLabel, setPhaseLabel] = useState("Analyzing your request...");
+  const [elapsed, setElapsed] = useState(0);
+  const isDag = lastUserMessage && DAG_TRIGGERS.test(lastUserMessage);
+
+  useEffect(() => {
+    const start = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 500);
+    if (!isDag) return () => clearInterval(timer);
+
+    const t1 = setTimeout(() => { setPhaseLabel("Strategy agent building plan..."); setActiveAgents(["strategy"]); }, 800);
+    const t2 = setTimeout(() => {
+      setPhaseLabel("Running 9 agents in parallel...");
+      setActiveAgents(["strategy", "content", "email", "creative"]);
+    }, 3000);
+    const t3 = setTimeout(() => {
+      setActiveAgents(["strategy", "content", "email", "creative", "video", "landingpage", "seo", "social"]);
+    }, 5500);
+    const t4 = setTimeout(() => {
+      setActiveAgents(["strategy", "content", "email", "creative", "video", "landingpage", "seo", "social", "dsp", "crm"]);
+    }, 8000);
+    const t5 = setTimeout(() => { setPhaseLabel("Review agent auditing all outputs..."); setActiveAgents(prev => [...prev, "review"]); }, 13000);
+
+    return () => { clearInterval(timer); [t1, t2, t3, t4, t5].forEach(clearTimeout); };
+  }, [isDag]);
+
   return (
     <div className="flex gap-3 animate-fade-in">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center flex-shrink-0">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center flex-shrink-0 mt-1">
         <Sparkles className="w-4 h-4 text-white" />
       </div>
-      <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3">
-        <div className="flex gap-1.5 items-center">
-          <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
-          <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
-          <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
-          <span className="text-xs text-muted-foreground ml-2">ARIA is thinking...</span>
-        </div>
+      <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 flex-1 max-w-lg">
+        {isDag && activeAgents.length > 0 ? (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1">
+                <div className="aria-thinking-dot w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className="aria-thinking-dot w-1.5 h-1.5 rounded-full bg-primary" />
+                <div className="aria-thinking-dot w-1.5 h-1.5 rounded-full bg-primary" />
+              </div>
+              <span className="text-xs font-medium text-foreground">{phaseLabel}</span>
+              <span className="text-xs text-muted-foreground ml-auto tabular-nums">{elapsed}s</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {activeAgents.map(agent => (
+                <span
+                  key={agent}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20 animate-fade-in"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
+                  {DAG_AGENT_LABELS[agent] ?? agent}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-1.5 items-center">
+            <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
+            <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
+            <div className="aria-thinking-dot w-2 h-2 rounded-full bg-primary" />
+            <span className="text-xs text-muted-foreground ml-2">ARIA is thinking...</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -416,6 +483,19 @@ export default function ARIA() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isThinking]);
+
+  // ── Auto-send ?q= query param on mount (deep-link from feature pages) ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isAuthenticated || loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("q");
+    if (q && q.trim()) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("q");
+      window.history.replaceState({}, "", url.toString());
+      setTimeout(() => handleSend(decodeURIComponent(q.replace(/\\+/g, " "))), 300);
+    }
+  }, [isAuthenticated, loading]);
 
   // ── File upload handler ──────────────────────────────────────────────────
   const handleFileUpload = async (files: FileList | null) => {
@@ -749,7 +829,7 @@ export default function ARIA() {
                 <ChatMessage key={msg.id} msg={msg} onAction={openDrawer} />
               ))
             )}
-            {isThinking && <ThinkingIndicator />}
+            {isThinking && <ThinkingIndicator lastUserMessage={messages.filter(m => m.role === "user").at(-1)?.content} />}
           </div>
         </div>
 

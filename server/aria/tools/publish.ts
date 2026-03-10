@@ -35,7 +35,7 @@ export async function schedulePost(userId: number, args: {
   }
 }
 
-// ─── SEND EMAIL CAMPAIGN ──────────────────────────────────────────────────────
+// ─── SEND EMAIL CAMPAIGN ────────────────────────────────────────────
 export async function sendEmailCampaign(userId: number, args: {
   emailCampaignId: number; listId?: number; scheduledAt?: string;
 }): Promise<ToolResult> {
@@ -47,13 +47,79 @@ export async function sendEmailCampaign(userId: number, args: {
     if (!email) return { kind: "sendEmailCampaign", status: "error", data: {}, message: "Email campaign not found" };
 
     const scheduledAt = args.scheduledAt ? new Date(args.scheduledAt) : null;
-    await db.update(emailCampaigns).set({
-      listId: args.listId ?? email.listId,
-      status: scheduledAt ? "scheduled" : "sending",
-      scheduledAt: scheduledAt ?? undefined,
-    }).where(eq(emailCampaigns.id, args.emailCampaignId));
+    const effectiveListId = args.listId ?? email.listId;
 
-    return { kind: "sendEmailCampaign", status: "success", recordId: args.emailCampaignId, data: { id: args.emailCampaignId, subject: email.subject, status: scheduledAt ? "scheduled" : "sending", scheduledAt: scheduledAt?.toISOString() } };
+    // If scheduled for later, just mark as scheduled
+    if (scheduledAt && scheduledAt > new Date()) {
+      await db.update(emailCampaigns).set({
+        listId: effectiveListId,
+        status: "scheduled",
+        scheduledAt,
+      }).where(eq(emailCampaigns.id, args.emailCampaignId));
+      return { kind: "sendEmailCampaign", status: "success", recordId: args.emailCampaignId, data: { id: args.emailCampaignId, subject: email.subject, status: "scheduled", scheduledAt: scheduledAt.toISOString() } };
+    }
+
+    // Mark as sending
+    await db.update(emailCampaigns).set({ listId: effectiveListId, status: "sending" }).where(eq(emailCampaigns.id, args.emailCampaignId));
+
+    // Fetch contacts from list
+    let sentCount = 0;
+    let failCount = 0;
+    const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (resendApiKey && effectiveListId) {
+      const { emailContacts } = await import("../../../drizzle/schema");
+      const contacts = await db.select().from(emailContacts)
+        .where(and(eq(emailContacts.listId, effectiveListId), eq(emailContacts.subscribed, true)))
+        .limit(500);
+
+      if (contacts.length > 0) {
+        const { Resend } = await import("resend");
+        const resendClient = new Resend(resendApiKey);
+        const fromEmail = email.fromEmail ?? process.env.RESEND_FROM_EMAIL ?? "ARIA <noreply@ariaai.app>";
+        const fromName = email.fromName ?? "ARIA";
+
+        // Send in batches of 50 to avoid rate limits
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
+          const batch = contacts.slice(i, i + BATCH_SIZE);
+          await Promise.allSettled(batch.map(async (contact) => {
+            try {
+              const personalizedHtml = (email.htmlBody ?? email.subject ?? "")
+                .replace(/{{first_name}}/gi, contact.firstName ?? "there")
+                .replace(/{{last_name}}/gi, contact.lastName ?? "")
+                .replace(/{{email}}/gi, contact.email);
+
+              const result = await resendClient.emails.send({
+                from: `${fromName} <${fromEmail.includes("<") ? fromEmail.split("<")[1].replace(">", "") : fromEmail}>`,
+                to: contact.email,
+                subject: email.subject ?? "Message from ARIA",
+                html: personalizedHtml || `<p>${email.subject}</p>`,
+                text: email.textBody ?? undefined,
+              });
+              if (result.data?.id) sentCount++;
+              else failCount++;
+            } catch { failCount++; }
+          }));
+        }
+
+        // Update campaign stats
+        await db.update(emailCampaigns).set({
+          status: "sent",
+          sentAt: new Date(),
+          recipientCount: sentCount,
+        }).where(eq(emailCampaigns.id, args.emailCampaignId));
+      } else {
+        // No contacts in list — mark as sent with 0 recipients
+        await db.update(emailCampaigns).set({ status: "sent", sentAt: new Date(), recipientCount: 0 }).where(eq(emailCampaigns.id, args.emailCampaignId));
+      }
+    } else {
+      // No Resend API key or no list — simulate send
+      await db.update(emailCampaigns).set({ status: "sent", sentAt: new Date() }).where(eq(emailCampaigns.id, args.emailCampaignId));
+      return { kind: "sendEmailCampaign", status: "success", recordId: args.emailCampaignId, data: { id: args.emailCampaignId, subject: email.subject, status: "sent", note: resendApiKey ? "No list selected" : "RESEND_API_KEY not configured — add it to send real emails" } };
+    }
+
+    return { kind: "sendEmailCampaign", status: "success", recordId: args.emailCampaignId, data: { id: args.emailCampaignId, subject: email.subject, status: "sent", sentCount, failCount, sentAt: new Date().toISOString() } };
   } catch (err) {
     return { kind: "sendEmailCampaign", status: "error", data: {}, message: String(err) };
   }

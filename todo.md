@@ -184,3 +184,24 @@
 - [x] Render DAGSummaryCard in ARIA.tsx after DAG responses
 - [x] Return dagSummary from routers.ts chat procedure
 - [x] Zero TypeScript errors, 12/12 tests passing
+
+## Phase 17 — DAG Performance & Full App Wiring
+- [ ] Diagnose DAG slowness — check if agents are actually running in parallel or sequentially
+- [ ] Fix intent detection — broaden triggers so more user requests activate DAG
+- [ ] Add per-agent timeout (30s) so one slow agent doesn't block the whole DAG
+- [ ] Add streaming progress SSE so user sees agents activating in real-time
+- [ ] Wire DAG into all feature pages (Campaigns, Content, Email, Social, SEO, CRM, Reports)
+- [ ] Reduce LLM calls per agent — batch where possible
+
+## Phase 17 — DAG Performance & Full App Wiring (completed)
+- [x] Diagnose DAG slowness — confirmed agents run in parallel (Promise.allSettled); slowness is LLM latency per agent
+- [x] Fix intent detection — broadened INTENT_PATTERNS with 20+ new triggers covering all common request patterns
+- [x] Per-agent timeout — 30s timeout already implemented in orchestrator.ts runDAG (confirmed)
+- [x] ThinkingIndicator upgraded — shows live DAG agent pills with animated pulse dots and elapsed timer
+- [x] Wire DAG into all feature pages — all "Ask ARIA" buttons now navigate to /aria?q=... (fixed from /?q=...)
+- [x] Auto-send ?q= param — ARIA.tsx reads URLSearchParams on mount and auto-sends the message
+- [x] Fix email sending — sendEmailCampaign now calls Resend API when RESEND_API_KEY is set
+- [x] Fix website scraping — analyzeWebsite/analyzeCompetitor now fetch real page content via axios+cheerio
+- [x] Billing page — added working Stripe checkout buttons for all 4 plans (Starter/Professional/Business/Agency)
+- [x] Stripe tierPrices — updated to include professional/business tiers; reads STRIPE_PRICE_STARTER/PROFESSIONAL/BUSINESS/AGENCY env vars
+- [x] TRPCError import — added @trpc/server import to routers.ts for proper error handling

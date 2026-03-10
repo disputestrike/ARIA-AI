@@ -21,7 +21,7 @@ export default function Scheduler() {
 
   return (
     <ARIALayout title="Content Scheduler" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Schedule+my+social+media+posts+for+this+week")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Schedule+my+social+media+posts+for+this+week")}>
         <Sparkles className="w-3.5 h-3.5" /> Schedule Posts
       </Button>
     }>
@@ -60,7 +60,7 @@ export default function Scheduler() {
               <Calendar className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No scheduled posts</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to schedule your social media content</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Create+a+social+media+posting+schedule+for+my+brand")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Create+a+social+media+posting+schedule+for+my+brand")}>
                 <Sparkles className="w-4 h-4" /> Schedule Content
               </Button>
             </CardContent>

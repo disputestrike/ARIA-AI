@@ -12,7 +12,7 @@ export default function Reviews() {
 
   return (
     <ARIALayout title="Reviews & Reputation" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Help+me+respond+to+my+reviews")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Help+me+respond+to+my+reviews")}>
         <Sparkles className="w-3.5 h-3.5" /> AI Respond
       </Button>
     }>
@@ -38,7 +38,7 @@ export default function Reviews() {
                       <p className="text-sm text-foreground line-clamp-2">{r.content}</p>
                       {r.aiReply && <p className="text-xs text-muted-foreground mt-2 italic">AI Reply: {r.aiReply.substring(0, 100)}...</p>}
                     </div>
-                    <Button size="sm" variant="outline" className="h-7 gap-1 flex-shrink-0" onClick={() => navigate(`/?q=Generate+a+professional+reply+to+this+review+${r.id}`)}>
+                    <Button size="sm" variant="outline" className="h-7 gap-1 flex-shrink-0" onClick={() => navigate(`/aria?q=Generate+a+professional+reply+to+this+review+${r.id}`)}>
                       <Sparkles className="w-3 h-3" /> Reply
                     </Button>
                   </div>
@@ -52,7 +52,7 @@ export default function Reviews() {
               <Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="font-semibold text-foreground mb-2">No reviews tracked</h3>
               <p className="text-sm text-muted-foreground mb-6">Ask ARIA to monitor and respond to your reviews</p>
-              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Set+up+review+monitoring+for+my+business")}>
+              <Button className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Set+up+review+monitoring+for+my+business")}>
                 <Sparkles className="w-4 h-4" /> Monitor Reviews
               </Button>
             </CardContent>

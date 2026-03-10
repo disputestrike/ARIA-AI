@@ -8,6 +8,57 @@ import { products, brandVoices, competitorProfiles, competitorSnapshots } from "
 import { invokeStructuredLLM } from "../llm-provider";
 import type { ToolResult } from "../memory";
 
+// ─── Website Fetcher ──────────────────────────────────────────────────────────
+async function fetchWebsiteContent(url: string): Promise<string> {
+  try {
+    const axios = (await import("axios")).default;
+    const { load } = await import("cheerio");
+
+    // Ensure URL has protocol
+    const fullUrl = url.startsWith("http") ? url : `https://${url}`;
+
+    const response = await axios.get(fullUrl, {
+      timeout: 10000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; ARIA-Bot/1.0; +https://ariaai.app)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+      },
+      maxRedirects: 5,
+    });
+
+    const $ = load(response.data as string);
+
+    // Remove scripts, styles, nav, footer for cleaner content
+    $("script, style, nav, footer, header, .cookie-banner, #cookie-notice").remove();
+
+    // Extract key content
+    const title = $("title").text().trim();
+    const metaDesc = $("meta[name='description']").attr("content") ?? "";
+    const metaKeywords = $("meta[name='keywords']").attr("content") ?? "";
+    const h1s = $("h1").map((_, el) => $(el).text().trim()).get().slice(0, 5).join(" | ");
+    const h2s = $("h2").map((_, el) => $(el).text().trim()).get().slice(0, 10).join(" | ");
+    const bodyText = $("body").text().replace(/\s+/g, " ").trim().slice(0, 3000);
+    const links = $("a[href]").map((_, el) => $(el).attr("href")).get().filter(h => h && !h.startsWith("#")).slice(0, 20).join(", ");
+    const ogTitle = $("meta[property='og:title']").attr("content") ?? "";
+    const ogDesc = $("meta[property='og:description']").attr("content") ?? "";
+
+    return `URL: ${fullUrl}
+Title: ${title}
+Meta Description: ${metaDesc}
+Meta Keywords: ${metaKeywords}
+OG Title: ${ogTitle}
+OG Description: ${ogDesc}
+H1 Tags: ${h1s}
+H2 Tags: ${h2s}
+Page Content (excerpt): ${bodyText}
+Internal/External Links: ${links}`;
+  } catch (err) {
+    // If fetch fails, return minimal info so LLM can still analyze based on URL
+    return `URL: ${url}\nNote: Could not fetch page content (${(err as Error).message}). Analyze based on URL and domain knowledge.`;
+  }
+}
+
 // ─── ANALYZE PRODUCT ──────────────────────────────────────────────────────────
 export async function analyzeProduct(userId: number, args: { productId?: number; url?: string; name?: string }): Promise<ToolResult> {
   const db = await getDb();
@@ -93,9 +144,12 @@ export async function getProductContext(userId: number, args: { productId: numbe
   }
 }
 
-// ─── ANALYZE WEBSITE ──────────────────────────────────────────────────────────
+// // ─── ANALYZE WEBSITE ────────────────────────────────────────────
 export async function analyzeWebsite(userId: number, args: { url: string; depth?: string }): Promise<ToolResult> {
   try {
+    // Fetch real page content first
+    const pageContent = await fetchWebsiteContent(args.url);
+
     const analysis = await invokeStructuredLLM<{
       trafficEstimate: string;
       demographics: string;
@@ -108,8 +162,8 @@ export async function analyzeWebsite(userId: number, args: { url: string; depth?
       techStack: string[];
       analyticsPresence: string[];
     }>({
-      systemPrompt: "You are a website intelligence analyst. Provide deep, actionable analysis.",
-      userPrompt: `Analyze this website URL and provide comprehensive intelligence: ${args.url}`,
+      systemPrompt: "You are a website intelligence analyst. Provide deep, actionable analysis based on real page content.",
+      userPrompt: `Analyze this website and provide comprehensive intelligence:\n\n${pageContent}`,
       schemaName: "website_analysis",
       schema: {
         type: "object",
@@ -163,8 +217,8 @@ export async function analyzeCompetitor(userId: number, args: { url: string; nam
       targetAudience: string;
       uniqueValueProposition: string;
     }>({
-      systemPrompt: "You are a competitive intelligence analyst. Provide deep, actionable competitive analysis.",
-      userPrompt: `Perform deep competitive analysis of: ${args.url} (${args.name ?? "competitor"})`,
+      systemPrompt: "You are a competitive intelligence analyst. Provide deep, actionable competitive analysis based on real page content.",
+      userPrompt: `Perform deep competitive analysis of: ${args.name ?? args.url}\n\n${await fetchWebsiteContent(args.url)}`,
       schemaName: "competitor_analysis",
       schema: {
         type: "object",

@@ -21,7 +21,7 @@ export default function Analytics() {
 
   return (
     <ARIALayout title="Analytics" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Generate+a+detailed+analytics+report")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Generate+a+detailed+analytics+report")}>
         <Sparkles className="w-3.5 h-3.5" /> AI Report
       </Button>
     }>
@@ -59,7 +59,7 @@ export default function Analytics() {
                     "Where should I allocate more budget?",
                     "Show me weekly trends",
                   ].map(q => (
-                    <Button key={q} size="sm" variant="outline" className="text-xs h-7" onClick={() => navigate(`/?q=${encodeURIComponent(q)}`)}>
+                    <Button key={q} size="sm" variant="outline" className="text-xs h-7" onClick={() => navigate(`/aria?q=${encodeURIComponent(q)}`)}>
                       {q}
                     </Button>
                   ))}

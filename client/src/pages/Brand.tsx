@@ -23,7 +23,7 @@ export default function Brand() {
 
   return (
     <ARIALayout title="Brand Kit" actions={
-      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/?q=Help+me+build+my+brand+identity")}>
+      <Button size="sm" className="gap-2 bg-gradient-to-r from-primary to-chart-2 hover:opacity-90" onClick={() => navigate("/aria?q=Help+me+build+my+brand+identity")}>
         <Sparkles className="w-3.5 h-3.5" /> Ask ARIA
       </Button>
     }>
