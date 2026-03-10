@@ -759,9 +759,9 @@ export default function ARIA() {
             <span className="text-muted-foreground text-sm">— AI Marketing Intelligence</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <Badge variant="outline" className="text-xs border-primary/30 text-primary">
+            <Badge variant="outline" className="text-xs border-green-500/30 text-green-600">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 inline-block" />
-              Claude Sonnet 4.5
+              ARIA Online
             </Badge>
             <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => navigate("/billing")}>
               <CreditCard className="w-3.5 h-3.5" />
@@ -921,7 +921,7 @@ export default function ARIA() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              ARIA uses Claude Sonnet 4.5 · Enter to send · Shift+Enter for new line · Paste a URL to attach it
+              Enter to send · Shift+Enter for new line · Paste a URL to attach it
             </p>
           </div>
         </div>

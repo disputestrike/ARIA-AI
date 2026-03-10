@@ -152,8 +152,8 @@ export default function Admin() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { name: "ARIA Agent (Anthropic Claude)", status: "operational", note: "Primary LLM" },
-              { name: "OpenAI Fallback", status: "operational", note: "Fallback LLM" },
+              { name: "ARIA Intelligence Engine", status: "operational", note: "Primary AI" },
+              { name: "ARIA Fallback Engine", status: "operational", note: "Backup AI" },
               { name: "Database (MySQL/TiDB)", status: "operational", note: "70+ tables" },
               { name: "Stripe Payments", status: "operational", note: "Test mode" },
               { name: "Publisher Cron", status: "operational", note: "Every 15 min" },

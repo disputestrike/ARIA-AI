@@ -128,7 +128,7 @@ export default function Home() {
           <div>
             <div className="inline-flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-full px-4 py-2 text-sm font-semibold text-violet-700 mb-6">
               <Sparkles className="w-3.5 h-3.5" />
-              Powered by Claude AI + GPT-4
+              ARIA Intelligence Engine — Fully Automated
             </div>
             <h1 className="text-5xl lg:text-6xl font-black leading-[1.1] mb-6 text-gray-900">
               Your Entire{" "}
