@@ -514,8 +514,16 @@ export default function ARIA() {
   }
 
   if (!isAuthenticated) {
-    navigate("/");
-    return null;
+    // Use full page redirect to ensure clean state after logout
+    window.location.href = "/";
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <img src={ARIA_LOGO_URL} alt="ARIA" className="w-12 h-12 rounded-xl object-contain" />
+          <p className="text-gray-500 text-sm">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -640,7 +648,7 @@ export default function ARIA() {
               <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => navigate("/settings")} title="Settings">
                 <Settings className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={logout}>
+              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={async () => { await logout(); window.location.href = "/"; }}>
                 <LogOut className="w-3.5 h-3.5" />
               </Button>
             </div>

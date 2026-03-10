@@ -160,3 +160,7 @@
 - [x] Remove "Made with Manus" badge — CSS rule added to hide platform-injected badge; badge fully disappears on Railway/custom domain deploy
 - [x] Add Google OAuth login button — "Continue with Google" button on landing page hero; getGoogleLoginUrl() added to const.ts
 - [ ] Backfill conversation titles for old "Conversation N" records (low priority — new convos auto-named)
+
+## Phase 15 — Auth Flow Fixes
+- [x] Fix logout: logout button now calls window.location.href="/" after logout for clean full-page redirect to landing page
+- [x] Fix unauthenticated /aria: shows ARIA logo + "Redirecting..." while window.location.href="/" fires, never shows bare screen
