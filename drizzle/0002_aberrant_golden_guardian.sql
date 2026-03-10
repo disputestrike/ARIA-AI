@@ -1,0 +1,1 @@
+ALTER TABLE `chatConversations` ADD `title` varchar(255);

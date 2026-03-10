@@ -27,29 +27,52 @@ const authRouter = router({
 
 const ariaRouter = router({
   chat: protectedProcedure
-    .input(z.object({ message: z.string(), conversationId: z.number().optional(), context: z.record(z.string(), z.unknown()).optional() }))
+    .input(z.object({ message: z.string(), conversationId: z.number().optional(), context: z.record(z.string(), z.unknown()).optional(), attachments: z.array(z.object({ name: z.string(), url: z.string(), type: z.string(), content: z.string().optional() })).optional() }))
     .mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return { reply: "Database unavailable", conversationId: null, toolsUsed: [], artifacts: [] };
       let convId = input.conversationId;
+      let convTitle: string | null = null;
       let history: Array<{ role: string; content: string }> = [];
       if (convId) {
         const [conv] = await db.select().from(chatConversations).where(and(eq(chatConversations.id, convId), eq(chatConversations.userId, ctx.user.id))).limit(1);
-        if (conv) history = (conv.messages as Array<{ role: string; content: string }>) ?? [];
+        if (conv) {
+          history = (conv.messages as Array<{ role: string; content: string }>) ?? [];
+          convTitle = conv.title ?? null;
+        }
       }
-      const result = await runARIAAgent(ctx.user.id, input.message, history as never[]);
-      const newHistory = [...history, { role: "user", content: input.message }, { role: "assistant", content: result.reply }];
+      // Build message with attachment context
+      let fullMessage = input.message;
+      if (input.attachments && input.attachments.length > 0) {
+        const attachCtx = input.attachments.map(a => {
+          if (a.content) return `[Attached: ${a.name}]\n${a.content}`;
+          return `[Attached: ${a.name} (${a.type}) at ${a.url}]`;
+        }).join('\n\n');
+        fullMessage = `${input.message}\n\n---\n${attachCtx}`;
+      }
+      const result = await runARIAAgent(ctx.user.id, fullMessage, history as never[]);
+      const newHistory = [...history, { role: "user", content: fullMessage }, { role: "assistant", content: result.reply }];
+      // Auto-generate title for new conversations from first user message
+      if (!convId && !convTitle) {
+        const words = input.message.trim().split(/\s+/).slice(0, 8).join(' ');
+        convTitle = words.length > 50 ? words.slice(0, 50) + '...' : words;
+      }
       if (convId) {
         await db.update(chatConversations).set({ messages: newHistory, updatedAt: new Date() }).where(eq(chatConversations.id, convId));
       } else {
-        const [inserted] = await db.insert(chatConversations).values({ userId: ctx.user.id, messages: newHistory });
+        const [inserted] = await db.insert(chatConversations).values({ userId: ctx.user.id, title: convTitle ?? undefined, messages: newHistory });
         convId = (inserted as { insertId: number }).insertId;
       }
-      return { reply: result.reply, conversationId: convId ?? null, toolsUsed: result.toolResults?.map((t) => t.kind) ?? [], toolResults: result.toolResults ?? [], artifacts: [] };
+      return { reply: result.reply, conversationId: convId ?? null, title: convTitle, toolsUsed: result.toolResults?.map((t) => t.kind) ?? [], toolResults: result.toolResults ?? [], artifacts: [] };
     }),
   conversations: protectedProcedure.query(async ({ ctx }) => {
     const db = await getDb(); if (!db) return [];
     return db.select().from(chatConversations).where(eq(chatConversations.userId, ctx.user.id)).orderBy(desc(chatConversations.updatedAt)).limit(50);
+  }),
+  getConversation: protectedProcedure.input(z.object({ id: z.number() })).query(async ({ ctx, input }) => {
+    const db = await getDb(); if (!db) return null;
+    const [conv] = await db.select().from(chatConversations).where(and(eq(chatConversations.id, input.id), eq(chatConversations.userId, ctx.user.id))).limit(1);
+    return conv ?? null;
   }),
   deleteConversation: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ ctx, input }) => {
     const db = await getDb(); if (!db) return { success: false };

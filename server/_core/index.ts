@@ -12,6 +12,7 @@ import { apiRateLimit } from "../middleware/rateLimit";
 import { registerStripeRoutes } from "../stripe/routes";
 import { registerSocialOAuthRoutes } from "../integrations/socialOAuth";
 import { startPublisherCron } from "../scheduler/publisherCron";
+import { uploadRouter } from "../upload";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -54,6 +55,10 @@ async function startServer() {
 
   // Social OAuth routes (Meta, Twitter, LinkedIn, TikTok)
   registerSocialOAuthRoutes(app);
+
+  // File upload endpoint for ARIA chat attachments
+  app.use(uploadRouter);
+
   // tRPC API
   app.use(
     "/api/trpc",

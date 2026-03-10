@@ -1,38 +1,48 @@
-import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { useLocation } from "wouter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
-  Sparkles, Send, Mic, MicOff, Plus, ChevronLeft, ChevronRight,
+  Sparkles, Send, Plus, ChevronLeft,
   MessageSquare, Trash2, Settings, CreditCard, Users, BarChart3,
   FileText, Mail, Globe, Zap, Target, TrendingUp, Video, Palette,
   TestTube, GitBranch, Calendar, Database, Star, Search, Cpu,
-  Bot, Brain, LogOut, Menu, X, ChevronDown, Play, Eye, Edit3,
-  Copy, ExternalLink, Download, RefreshCw, CheckCircle, AlertCircle,
-  Clock, DollarSign, Layers, Share2, Archive, MoreHorizontal
+  Bot, Brain, LogOut, Menu, X,
+  Copy, ExternalLink, Eye, Edit3,
+  RefreshCw, CheckCircle,
+  DollarSign, Layers, Share2, MoreHorizontal,
+  Paperclip, Link, Image, File, AlertCircle
 } from "lucide-react";
 import { Streamdown } from "streamdown";
 import ARIADrawer from "@/components/ARIADrawer";
 import MemoryBar from "@/components/MemoryBar";
 import VoiceInput from "@/components/VoiceInput";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // CDN URL for the professional ARIA neural-network logo
 const ARIA_LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663191442451/Xo3BLWEeUiTMAmf4aBe7Nf/aria-logo_1be63f43.png";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+interface Attachment {
+  name: string;
+  url: string;
+  type: string;
+  size?: number;
+  content?: string;
+}
+
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   toolResults?: ToolResult[];
+  attachments?: Attachment[];
   timestamp: Date;
 }
 
@@ -110,33 +120,20 @@ const NAV_SECTIONS = [
 // ─── Result Card ──────────────────────────────────────────────────────────────
 function ResultCard({ result, onAction }: { result: ToolResult; onAction: (type: string, data: Record<string, unknown>) => void }) {
   const kindLabels: Record<string, string> = {
-    buildCampaign: "Campaign Created",
-    generateContent: "Content Generated",
-    buildEmailCampaign: "Email Campaign",
-    buildLandingPage: "Landing Page",
-    buildVideoAd: "Video Ad",
-    buildCreative: "Creative Asset",
-    buildABTest: "A/B Test",
-    buildFunnel: "Marketing Funnel",
-    launchDSPCampaign: "DSP Campaign",
-    schedulePost: "Post Scheduled",
-    generateReport: "Report Generated",
-    generateSEOAudit: "SEO Audit",
-    replyToReview: "Review Reply",
-    analyzeCompetitor: "Competitor Analysis",
-    buildBrandVoice: "Brand Voice",
-    buildBrandKit: "Brand Kit",
-    buildAutomation: "Automation",
-    sendEmail: "Email Sent",
-    publishContent: "Content Published",
-    getAnalytics: "Analytics",
-    getLeads: "CRM Data",
-    buildProduct: "Product Created",
-    buildForm: "Form Created",
-    buildPersonalVideo: "Personal Video",
+    buildCampaign: "Campaign Created", generateContent: "Content Generated",
+    buildEmailCampaign: "Email Campaign", buildLandingPage: "Landing Page",
+    buildVideoAd: "Video Ad", buildCreative: "Creative Asset",
+    buildABTest: "A/B Test", buildFunnel: "Marketing Funnel",
+    launchDSPCampaign: "DSP Campaign", schedulePost: "Post Scheduled",
+    generateReport: "Report Generated", generateSEOAudit: "SEO Audit",
+    replyToReview: "Review Reply", analyzeCompetitor: "Competitor Analysis",
+    buildBrandVoice: "Brand Voice", buildBrandKit: "Brand Kit",
+    buildAutomation: "Automation", sendEmail: "Email Sent",
+    publishContent: "Content Published", getAnalytics: "Analytics",
+    getLeads: "CRM Data", buildProduct: "Product Created",
+    buildForm: "Form Created", buildPersonalVideo: "Personal Video",
     repurposeContent: "Content Repurposed",
   };
-
   const kindIcons: Record<string, React.ElementType> = {
     buildCampaign: Target, generateContent: FileText, buildEmailCampaign: Mail,
     buildLandingPage: Globe, buildVideoAd: Video, buildCreative: Palette,
@@ -148,11 +145,6 @@ function ResultCard({ result, onAction }: { result: ToolResult; onAction: (type:
     buildProduct: Layers, buildForm: FileText, buildPersonalVideo: Video,
     repurposeContent: RefreshCw,
   };
-
-  const Icon = kindIcons[result.kind] ?? Sparkles;
-  const label = kindLabels[result.kind] ?? result.kind;
-  const isSuccess = result.status === "success";
-
   const drawerTypeMap: Record<string, string> = {
     buildCampaign: "campaign", generateContent: "content", buildEmailCampaign: "email",
     buildLandingPage: "landingPage", buildVideoAd: "video", buildCreative: "creative",
@@ -160,9 +152,11 @@ function ResultCard({ result, onAction }: { result: ToolResult; onAction: (type:
     generateReport: "report", generateSEOAudit: "seo", analyzeCompetitor: "competitor",
     getAnalytics: "analytics", getLeads: "crm",
   };
-
+  const Icon = kindIcons[result.kind] ?? Sparkles;
+  const label = kindLabels[result.kind] ?? result.kind;
+  const isSuccess = result.status === "success";
   return (
-    <div className={`result-card-glow rounded-xl border p-4 bg-card animate-slide-in-bottom ${isSuccess ? "border-primary/20" : "border-destructive/20"}`}>
+    <div className={`rounded-xl border p-4 bg-card animate-slide-in-bottom ${isSuccess ? "border-primary/20" : "border-destructive/20"}`}>
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded-lg ${isSuccess ? "bg-primary/10" : "bg-destructive/10"}`}>
           <Icon className={`w-4 h-4 ${isSuccess ? "text-primary" : "text-destructive"}`} />
@@ -174,9 +168,7 @@ function ResultCard({ result, onAction }: { result: ToolResult; onAction: (type:
               {isSuccess ? "Done" : "Error"}
             </Badge>
           </div>
-          {result.message && (
-            <p className="text-xs text-muted-foreground mb-2">{result.message}</p>
-          )}
+          {result.message && <p className="text-xs text-muted-foreground mb-2">{result.message}</p>}
           {isSuccess && result.data && (
             <div className="text-xs text-muted-foreground space-y-1">
               {Object.entries(result.data).slice(0, 3).map(([k, v]) => (
@@ -191,39 +183,63 @@ function ResultCard({ result, onAction }: { result: ToolResult; onAction: (type:
       </div>
       {isSuccess && drawerTypeMap[result.kind] && (
         <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs h-7 gap-1"
-            onClick={() => onAction(drawerTypeMap[result.kind], result.data ?? {})}
-          >
+          <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => onAction(drawerTypeMap[result.kind], result.data ?? {})}>
             <Eye className="w-3 h-3" /> View
           </Button>
           <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
             <Edit3 className="w-3 h-3" /> Edit
           </Button>
-          {(result.data?.shareUrl as string | undefined) && (
-            <Button size="sm" variant="outline" className="text-xs h-7 gap-1">
-              <ExternalLink className="w-3 h-3" /> Open
-            </Button>
-          )}
         </div>
       )}
     </div>
   );
 }
 
+// ─── Attachment Chip ──────────────────────────────────────────────────────────
+function AttachmentChip({ attachment }: { attachment: Attachment }) {
+  const isImage = attachment.type.startsWith("image/");
+  const isPdf = attachment.type === "application/pdf";
+  const Icon = isImage ? Image : isPdf ? FileText : File;
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary hover:bg-primary/20 transition-colors max-w-[200px]"
+    >
+      <Icon className="w-3 h-3 flex-shrink-0" />
+      <span className="truncate">{attachment.name}</span>
+      <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 opacity-60" />
+    </a>
+  );
+}
+
 // ─── Chat Message ─────────────────────────────────────────────────────────────
 function ChatMessage({ msg, onAction }: { msg: Message; onAction: (type: string, data: Record<string, unknown>) => void }) {
   const isUser = msg.role === "user";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(msg.content).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-slide-in-bottom`}>
+    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"} animate-slide-in-bottom group`}>
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center flex-shrink-0 mt-1">
           <Sparkles className="w-4 h-4 text-white" />
         </div>
       )}
       <div className={`max-w-[80%] space-y-2 ${isUser ? "items-end" : "items-start"} flex flex-col`}>
+        {/* Attachments (shown above the message bubble for user messages) */}
+        {msg.attachments && msg.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {msg.attachments.map((a, i) => <AttachmentChip key={i} attachment={a} />)}
+          </div>
+        )}
         <div className={`rounded-2xl px-4 py-3 ${isUser
           ? "bg-primary text-primary-foreground rounded-tr-sm"
           : "bg-card border border-border rounded-tl-sm"
@@ -243,9 +259,18 @@ function ChatMessage({ msg, onAction }: { msg: Message; onAction: (type: string,
             ))}
           </div>
         )}
-        <span className="text-xs text-muted-foreground px-1">
-          {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-        </span>
+        <div className={`flex items-center gap-2 px-1 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+          <span className="text-xs text-muted-foreground">
+            {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </span>
+          <button
+            onClick={handleCopy}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground"
+            title="Copy message"
+          >
+            {copied ? <CheckCircle className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -282,6 +307,28 @@ const SUGGESTIONS = [
   "Show me my analytics overview",
 ];
 
+// ─── Pending Attachment Preview ───────────────────────────────────────────────
+function PendingAttachmentPreview({ attachments, onRemove }: { attachments: Attachment[]; onRemove: (i: number) => void }) {
+  if (attachments.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+      {attachments.map((a, i) => {
+        const isImage = a.type.startsWith("image/");
+        const Icon = isImage ? Image : a.type === "application/pdf" ? FileText : File;
+        return (
+          <div key={i} className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary">
+            <Icon className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate max-w-[120px]">{a.name}</span>
+            <button onClick={() => onRemove(i)} className="hover:text-destructive ml-0.5">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── Main ARIA Component ──────────────────────────────────────────────────────
 export default function ARIA() {
   const { user, loading, isAuthenticated, logout } = useAuth();
@@ -292,14 +339,37 @@ export default function ARIA() {
   const [conversationId, setConversationId] = useState<number | null | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [drawer, setDrawer] = useState<DrawerState>({ open: false, type: null, data: null });
-  // voice input is now inline — no modal needed
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: conversations, refetch: refetchConversations } = trpc.aria.conversations.useQuery(
     undefined,
     { enabled: isAuthenticated }
   );
+
+  const getConversationQuery = trpc.aria.getConversation.useQuery(
+    { id: conversationId! },
+    { enabled: typeof conversationId === "number" && conversationId > 0 && messages.length === 0 }
+  );
+
+  // Load messages when a conversation is selected from history
+  useEffect(() => {
+    if (getConversationQuery.data && messages.length === 0) {
+      const conv = getConversationQuery.data;
+      const loaded = (conv.messages as Array<{ role: string; content: string }>).map((m, i) => ({
+        id: `hist_${i}`,
+        role: m.role as "user" | "assistant",
+        content: m.content,
+        timestamp: new Date(conv.updatedAt),
+      }));
+      setMessages(loaded);
+    }
+  }, [getConversationQuery.data]);
 
   const sendMutation = trpc.aria.chat.useMutation({
     onSuccess: (data) => {
@@ -309,7 +379,6 @@ export default function ARIA() {
         role: "assistant",
         content: data.reply,
         toolResults: (data.toolResults as ToolResult[] | undefined) ?? [],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
@@ -338,6 +407,46 @@ export default function ARIA() {
     }
   }, [messages, isThinking]);
 
+  // ── File upload handler ──────────────────────────────────────────────────
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      Array.from(files).forEach(f => formData.append("files", f));
+      const res = await fetch("/api/upload/attachment", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { attachments } = await res.json() as { attachments: Attachment[] };
+      setPendingAttachments(prev => [...prev, ...attachments]);
+      toast.success(`${attachments.length} file${attachments.length > 1 ? "s" : ""} attached`);
+    } catch (err) {
+      toast.error("Failed to upload file. Please try again.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // ── URL attachment handler ───────────────────────────────────────────────
+  const handleAddUrl = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    try {
+      new URL(url); // validate
+      const name = url.replace(/^https?:\/\//, "").split("/")[0];
+      setPendingAttachments(prev => [...prev, { name, url, type: "text/uri-list" }]);
+      setUrlInput("");
+      setShowUrlInput(false);
+      toast.success("URL attached");
+    } catch {
+      toast.error("Please enter a valid URL (e.g. https://example.com)");
+    }
+  };
+
   const handleSend = useCallback((text?: string) => {
     const msg = (text ?? input).trim();
     if (!msg || isThinking) return;
@@ -346,15 +455,20 @@ export default function ARIA() {
       id: Date.now().toString(),
       role: "user",
       content: msg,
+      attachments: pendingAttachments.length > 0 ? [...pendingAttachments] : undefined,
       timestamp: new Date(),
     };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
+    setPendingAttachments([]);
     setIsThinking(true);
 
-    const history = messages.slice(-10).map(m => ({ role: m.role, content: m.content }));
-    sendMutation.mutate({ message: msg, conversationId: conversationId ?? undefined });
-  }, [input, isThinking, messages, conversationId, sendMutation]);
+    sendMutation.mutate({
+      message: msg,
+      conversationId: conversationId ?? undefined,
+      attachments: pendingAttachments.length > 0 ? pendingAttachments : undefined,
+    });
+  }, [input, isThinking, pendingAttachments, conversationId, sendMutation]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -363,9 +477,25 @@ export default function ARIA() {
     }
   };
 
+  // Handle paste: detect URLs and offer to attach
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData("text");
+    if (text.startsWith("http://") || text.startsWith("https://")) {
+      try {
+        new URL(text);
+        const name = text.replace(/^https?:\/\//, "").split("/")[0];
+        setPendingAttachments(prev => [...prev, { name, url: text, type: "text/uri-list" }]);
+        e.preventDefault();
+        toast.success(`URL attached: ${name}`);
+        return;
+      } catch { /* not a valid URL, fall through */ }
+    }
+  };
+
   const handleNewChat = () => {
     setMessages([]);
     setConversationId(undefined);
+    setPendingAttachments([]);
   };
 
   const openDrawer = (type: string, data: Record<string, unknown>) => {
@@ -384,7 +514,6 @@ export default function ARIA() {
   }
 
   if (!isAuthenticated) {
-    // Redirect to landing page instead of showing a bare screen
     navigate("/");
     return null;
   }
@@ -400,7 +529,6 @@ export default function ARIA() {
             <span className="font-bold text-gray-900 text-lg">ARIA</span>
             <Badge variant="secondary" className="text-xs ml-auto">AI</Badge>
           </div>
-
           {/* New Chat */}
           <Button
             className="w-full gap-2 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
@@ -421,8 +549,54 @@ export default function ARIA() {
 
         <Separator />
 
-        {/* Nav */}
+        {/* Nav + Recent Conversations */}
         <div className="flex-1 overflow-y-auto min-h-0 py-2">
+          {/* Recent Conversations */}
+          {conversations && conversations.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs font-semibold text-muted-foreground px-4 py-1 uppercase tracking-wider">
+                Recent
+              </p>
+              {conversations.slice(0, 10).map(conv => {
+                const title = conv.title ??
+                  (() => {
+                    const msgs = conv.messages as Array<{ role: string; content: string }>;
+                    const first = msgs.find(m => m.role === "user");
+                    if (!first) return `Chat ${conv.id}`;
+                    const words = first.content.trim().split(/\s+/).slice(0, 6).join(" ");
+                    return words.length > 40 ? words.slice(0, 40) + "…" : words;
+                  })();
+                const isActive = conversationId === conv.id;
+                return (
+                  <button
+                    key={conv.id}
+                    className={`w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors text-left group ${isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"}`}
+                    onClick={() => {
+                      setMessages([]);
+                      setConversationId(conv.id);
+                    }}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="truncate flex-1">{title}</span>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteConversationMutation.mutate({ id: conv.id });
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteConversationMutation.mutate({ id: conv.id }); } }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Navigation sections */}
           {NAV_SECTIONS.map(section => (
             <div key={section.label} className="mb-2">
               <p className="text-xs font-semibold text-muted-foreground px-4 py-1 uppercase tracking-wider">
@@ -440,42 +614,6 @@ export default function ARIA() {
               ))}
             </div>
           ))}
-
-          {/* Recent Conversations */}
-          {conversations && conversations.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs font-semibold text-muted-foreground px-4 py-1 uppercase tracking-wider">
-                Recent
-              </p>
-              {conversations.slice(0, 8).map(conv => (
-                <button
-                  key={conv.id}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-colors text-left group"
-                  onClick={() => {
-                    setConversationId(conv.id);
-                    // Load messages for this conversation
-                  }}
-                >
-                  <MessageSquare className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate flex-1">
-                    {(conv.messages as unknown[])?.length ? `Conversation ${conv.id}` : `Chat ${conv.id}`}
-                  </span>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteConversationMutation.mutate({ id: conv.id });
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); deleteConversationMutation.mutate({ id: conv.id }); } }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         <Separator />
@@ -493,20 +631,10 @@ export default function ARIA() {
               <p className="text-xs text-muted-foreground truncate">{user?.email ?? ""}</p>
             </div>
             <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-7 h-7"
-                onClick={() => handleSend("Show me my account settings")}
-              >
+              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => handleSend("Show me my account settings")}>
                 <Settings className="w-3.5 h-3.5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="w-7 h-7"
-                onClick={logout}
-              >
+              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={logout}>
                 <LogOut className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -518,12 +646,7 @@ export default function ARIA() {
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Header */}
         <header className="h-14 border-b border-border flex items-center px-4 gap-3 flex-shrink-0">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
+          <Button variant="ghost" size="icon" className="w-8 h-8" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </Button>
           <div className="flex items-center gap-2">
@@ -536,12 +659,7 @@ export default function ARIA() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 inline-block" />
               Claude Sonnet 4.5
             </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-xs gap-1"
-              onClick={() => handleSend("Show me my billing and credits")}
-            >
+            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => handleSend("Show me my billing and credits")}>
               <CreditCard className="w-3.5 h-3.5" />
               Credits
             </Button>
@@ -551,7 +669,7 @@ export default function ARIA() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto min-h-0" ref={scrollRef as React.RefObject<HTMLDivElement>}>
           <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-            {messages.length === 0 ? (
+            {messages.length === 0 && !getConversationQuery.isLoading ? (
               /* Welcome Screen */
               <div className="text-center space-y-8 py-12">
                 <div className="space-y-3">
@@ -563,8 +681,6 @@ export default function ARIA() {
                     I'm ARIA, your AI marketing co-pilot. Tell me what you want to build, analyze, or launch — I'll handle the rest.
                   </p>
                 </div>
-
-                {/* Suggestion chips */}
                 <div className="flex flex-wrap gap-2 justify-center">
                   {SUGGESTIONS.map(s => (
                     <button
@@ -576,8 +692,6 @@ export default function ARIA() {
                     </button>
                   ))}
                 </div>
-
-                {/* Capability grid */}
                 <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto">
                   {[
                     { icon: Target, label: "Campaigns", desc: "Build & launch" },
@@ -599,6 +713,13 @@ export default function ARIA() {
                   ))}
                 </div>
               </div>
+            ) : getConversationQuery.isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-3">
+                  <img src={ARIA_LOGO_URL} alt="ARIA" className="w-10 h-10 rounded-xl object-contain animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Loading conversation...</p>
+                </div>
+              </div>
             ) : (
               messages.map(msg => (
                 <ChatMessage key={msg.id} msg={msg} onAction={openDrawer} />
@@ -611,33 +732,92 @@ export default function ARIA() {
         {/* Input Area */}
         <div className="border-t border-border p-4 flex-shrink-0">
           <div className="max-w-3xl mx-auto">
-            <div className="relative flex items-end gap-2 bg-card border border-border rounded-2xl p-3 focus-within:border-primary/50 transition-colors">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask ARIA anything — build a campaign, write content, analyze data..."
-                className="flex-1 border-0 bg-transparent resize-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px] max-h-[200px] text-sm placeholder:text-muted-foreground/60 p-0"
-                rows={1}
-              />
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <VoiceInput
-                  onTranscript={(text) => setInput(prev => prev ? prev + " " + text : text)}
-                  disabled={isThinking}
+            {/* URL input row */}
+            {showUrlInput && (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="url"
+                  value={urlInput}
+                  onChange={e => setUrlInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") handleAddUrl(); if (e.key === "Escape") setShowUrlInput(false); }}
+                  placeholder="Paste a URL (website, doc, page)..."
+                  className="flex-1 text-sm border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50 bg-white"
+                  autoFocus
                 />
-                <Button
-                  size="icon"
-                  className="w-8 h-8 bg-primary hover:bg-primary/90 rounded-xl"
-                  onClick={() => handleSend()}
-                  disabled={!input.trim() || isThinking}
-                >
-                  <Send className="w-4 h-4" />
+                <Button size="sm" onClick={handleAddUrl} className="h-8 text-xs">Attach</Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowUrlInput(false)} className="h-8 w-8 p-0">
+                  <X className="w-3.5 h-3.5" />
                 </Button>
+              </div>
+            )}
+
+            <div className="relative flex flex-col bg-card border border-border rounded-2xl focus-within:border-primary/50 transition-colors">
+              {/* Pending attachments preview */}
+              <PendingAttachmentPreview
+                attachments={pendingAttachments}
+                onRemove={(i) => setPendingAttachments(prev => prev.filter((_, idx) => idx !== i))}
+              />
+
+              <div className="flex items-end gap-2 p-3">
+                <Textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
+                  placeholder="Ask ARIA anything — or paste a URL to attach it..."
+                  className="flex-1 border-0 bg-transparent resize-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[44px] max-h-[200px] text-sm placeholder:text-muted-foreground/60 p-0"
+                  rows={1}
+                />
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {/* Attach file button */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,.csv,.md,.jpg,.jpeg,.png,.gif,.webp,.mp3,.wav,.webm,.ogg,.m4a"
+                    className="hidden"
+                    onChange={e => handleFileUpload(e.target.files)}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    title="Attach file (PDF, Word, image, audio)"
+                  >
+                    {isUploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                  </Button>
+                  {/* Attach URL button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-8 h-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setShowUrlInput(!showUrlInput)}
+                    title="Attach a URL"
+                  >
+                    <Link className="w-4 h-4" />
+                  </Button>
+                  {/* Voice input */}
+                  <VoiceInput
+                    onTranscript={(text) => setInput(prev => prev ? prev + " " + text : text)}
+                    disabled={isThinking}
+                  />
+                  {/* Send */}
+                  <Button
+                    size="icon"
+                    className="w-8 h-8 bg-primary hover:bg-primary/90 rounded-xl"
+                    onClick={() => handleSend()}
+                    disabled={(!input.trim() && pendingAttachments.length === 0) || isThinking}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              ARIA uses Claude 3.5 Sonnet · Press Enter to send, Shift+Enter for new line
+              ARIA uses Claude Sonnet 4.5 · Enter to send · Shift+Enter for new line · Paste a URL to attach it
             </p>
           </div>
         </div>
@@ -652,7 +832,7 @@ export default function ARIA() {
         onSendMessage={handleSend}
       />
 
-      {/* Voice input is now inline in the chat bar */}
+      {/* Hidden file input */}
     </div>
   );
 }

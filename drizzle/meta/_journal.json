@@ -15,6 +15,13 @@
       "when": 1773108574090,
       "tag": "0001_special_tenebrous",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773113295841,
+      "tag": "0002_aberrant_golden_guardian",
+      "breakpoints": true
     }
   ]
 }

@@ -146,3 +146,11 @@
 - [x] Update ARIA logo: replaced Brain/Sparkles placeholder icons with real CDN logo image in ARIASidebar, ARIALayout, and ARIA.tsx (all 6 occurrences)
 - [x] Fix global scrolling broken everywhere in the app — root cause was .flex { min-height: 0 } override in index.css collapsing all flex containers; removed the override and replaced ScrollArea with overflow-y-auto divs in ARIA.tsx sidebar and messages area
 - [x] Fix routing: / shows full landing page, /aria shows the chat app, unauthenticated /aria now redirects to / (landing page) instead of showing a bare screen
+
+## Phase 13 — Chat Enhancements
+- [x] Fix chat history: clicking past conversation loads messages back into chat — added getConversation procedure + useEffect to hydrate messages
+- [x] Auto-name conversations — title derived from first 8 words of user message; stored in DB; shown in sidebar
+- [x] Update favicon to ARIA logo — generated favicon.ico from ARIA logo PNG, added link tags to index.html
+- [x] Add file/URL attachment support — Paperclip button uploads PDF/Word/image/audio to S3; Link button or paste-URL attaches URLs; shown as chips in chat
+- [x] Add copy button on every message — hover to reveal, shows checkmark on success
+- [x] Voice input verified working (VoiceInput component wired to textarea)

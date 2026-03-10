@@ -850,6 +850,7 @@ export const webhookEndpoints = mysqlTable("webhookEndpoints", {
 export const chatConversations = mysqlTable("chatConversations", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }),
   messages: json("messages").notNull(),
   activeProductId: int("activeProductId"),
   brandVoiceId: int("brandVoiceId"),
