@@ -1,0 +1,37 @@
+This is a solid synthesis document. But let me read it critically against everything we've discussed across this entire session and flag anything missing or needing sharpening.
+
+**What's captured well:**
+- AEO module — complete and accurate
+- Pricing architecture — locked and correct
+- Gap analysis sections — thorough
+- Asset controls — all 8 controls with status indicators
+- Guardrails — avatar dialog, no auto-publish, no auto-spend
+- DataForSEO mapping — endpoints, costs, caching
+- Result card specs — all output types
+- Build pass sequence — correct order
+- The cheerio/scraping fix context — accurately described
+- Competitive table — Mega AI $11.5M raise included
+
+**What I notice is missing or incomplete:**
+
+1. **SEO data honesty rule** — we specifically decided that traffic/DA/keyword numbers must be labeled "AI Estimate" or stripped entirely until DataForSEO is wired. The doc says "must use real scraped data, not AI estimates" but doesn't say what to do in the interim before DataForSEO is integrated. That gap could ship a bad experience.
+
+2. **The presentation problem** — Section 8 covers result card specs but never states the root cause decision: agents currently return text strings, they need to return structured JSON, and the UI renders from JSON. Without that architectural decision documented, Manus will keep dumping paragraphs and just wrap them in a card shell.
+
+3. **Cheerio limitation is understated** — Section 9.5 says website intelligence "now fetches real page content via axios + cheerio." True. But it doesn't note the ceiling — cheerio gives on-page content only. It cannot give traffic, DA, backlinks, or rankings. A developer reading this could think cheerio solved the problem. It solved half of it.
+
+4. **No-brand mode specifics** — mentioned in 9.6 but the exact behavior rules we defined aren't captured: Has brand → load Brand Kit. Has product no brand → ask ONE question, build Brand Kit as it works. No brand specific task → zero questions, build immediately. No brand no plan → treat like ChatGPT. After 3+ interactions → offer to save. These four states should be explicit.
+
+5. **ARIA_MODEL config constant** — listed in Pass 2 checklist but never explained. Should note: this is so the model can be swapped across the entire codebase in one line without hunting through files.
+
+6. **The DAG speed issue** — we discussed the 18-20 second minimum latency (5s strategy + 8s parallel + 5s review) and that it's not a bug, it's LLM latency. Not captured anywhere. If someone reads this cold they'll think the DAG is broken when it's working correctly.
+
+7. **"Made with ARIA" badge mechanics** — mentioned in 9.6 referral section but the viral loop logic isn't fully specified: Free tier outputs carry the badge by default, paid tier removes it, badge links to ARIA signup page, this is the primary organic acquisition loop.
+
+8. **DataForSEO Phase order** — the integration spec document had a clear three-phase implementation order (free APIs first → DataForSEO core → result cards). That sequence isn't in this document. Without it Manus could try to build DataForSEO before wiring the free APIs and waste time.
+
+**Verdict:**
+
+95% complete. The gaps above are edge cases and implementation details rather than missing features. The document is ready to hand to Manus for any of the four build passes. I'd add the SEO interim behavior rule and the JSON-first architecture note before doing so — those two specifically could cause bad outputs if a developer misreads the current state.
+
+Want me to patch those into a v3 or add them as a brief addendum section?
