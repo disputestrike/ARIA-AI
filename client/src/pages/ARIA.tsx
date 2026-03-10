@@ -23,6 +23,9 @@ import ARIADrawer from "@/components/ARIADrawer";
 import MemoryBar from "@/components/MemoryBar";
 import VoiceInput from "@/components/VoiceInput";
 
+// CDN URL for the professional ARIA neural-network logo
+const ARIA_LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663191442451/Xo3BLWEeUiTMAmf4aBe7Nf/aria-logo_1be63f43.png";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Message {
   id: string;
@@ -369,12 +372,10 @@ export default function ARIA() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-white animate-spin" />
-          </div>
-          <p className="text-muted-foreground text-sm">Loading ARIA...</p>
+          <img src={ARIA_LOGO_URL} alt="ARIA" className="w-12 h-12 rounded-xl object-contain" />
+          <p className="text-gray-500 text-sm">Loading ARIA...</p>
         </div>
       </div>
     );
@@ -382,11 +383,9 @@ export default function ARIA() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center space-y-6 max-w-md px-4">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center mx-auto">
-            <Sparkles className="w-10 h-10 text-white" />
-          </div>
+          <img src={ARIA_LOGO_URL} alt="ARIA" className="w-20 h-20 rounded-2xl object-contain mx-auto" />
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-2">Welcome to ARIA</h1>
             <p className="text-muted-foreground">
@@ -418,14 +417,12 @@ export default function ARIA() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
-      <aside className={`${sidebarOpen ? "w-64" : "w-0"} transition-all duration-300 overflow-hidden flex-shrink-0 border-r border-border bg-sidebar flex flex-col`}>
+      <aside className={`${sidebarOpen ? "w-64" : "w-0"} transition-all duration-300 overflow-hidden flex-shrink-0 border-r border-gray-200 bg-white flex flex-col h-screen`}>
         <div className="p-4 flex-shrink-0">
           {/* Logo */}
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-foreground text-lg">ARIA</span>
+            <img src={ARIA_LOGO_URL} alt="ARIA" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" />
+            <span className="font-bold text-gray-900 text-lg">ARIA</span>
             <Badge variant="secondary" className="text-xs ml-auto">AI</Badge>
           </div>
 
@@ -555,16 +552,14 @@ export default function ARIA() {
             {sidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </Button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center">
-              <Sparkles className="w-3 h-3 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">ARIA</span>
+            <img src={ARIA_LOGO_URL} alt="ARIA" className="w-6 h-6 rounded-md object-contain flex-shrink-0" />
+            <span className="font-semibold text-gray-900">ARIA</span>
             <span className="text-muted-foreground text-sm">— AI Marketing Intelligence</span>
           </div>
           <div className="ml-auto flex items-center gap-2">
             <Badge variant="outline" className="text-xs border-primary/30 text-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 inline-block" />
-              Claude 3.5 Sonnet
+              Claude Sonnet 4.5
             </Badge>
             <Button
               variant="ghost"
@@ -585,9 +580,7 @@ export default function ARIA() {
               /* Welcome Screen */
               <div className="text-center space-y-8 py-12">
                 <div className="space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-chart-2 flex items-center justify-center mx-auto">
-                    <Sparkles className="w-8 h-8 text-white" />
-                  </div>
+                  <img src={ARIA_LOGO_URL} alt="ARIA" className="w-16 h-16 rounded-2xl object-contain mx-auto" />
                   <h2 className="text-2xl font-bold text-foreground">
                     Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}, {user?.name?.split(" ")[0] ?? "there"}
                   </h2>

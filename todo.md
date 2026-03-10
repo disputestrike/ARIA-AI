@@ -140,3 +140,7 @@
 - [x] Fix Anthropic API crash: "messages.3.content.1.tool_use.id: Field required" — store _anthropicContent on assistant messages to preserve tool_use IDs across loop iterations
 - [x] Update Claude model from unavailable claude-3-5-sonnet-20241022 to claude-sonnet-4-5-20250929
 - [x] Add llm-provider.test.ts with 3 tests covering tool_use_id tracking (12 total tests passing)
+
+## Phase 12 — UI Fixes
+- [x] Fix sidebar: not scrolling, navigation items not clickable — replaced ScrollArea with overflow-y-auto on bounded flex-1 container, set h-screen on aside
+- [x] Update ARIA logo: replaced Brain/Sparkles placeholder icons with real CDN logo image in ARIASidebar, ARIALayout, and ARIA.tsx (all 6 occurrences)
