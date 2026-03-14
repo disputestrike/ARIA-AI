@@ -94,6 +94,50 @@ const ariaRouter = router({
       else { await db.insert(userMemory).values({ userId: ctx.user.id, ...input }); }
       return { success: true };
     }),
+  researchBrand: protectedProcedure
+    .input(z.object({ input: z.string(), entryPoint: z.enum(["new", "existing", "task", "clarify"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const strategy = {
+        brandName: "Your Brand",
+        positioning: "Market leader in your industry",
+        audience: ["Entrepreneurs"],
+        channels: ["social", "email", "content"],
+        recommendedAssets: ["blog", "email", "social", "ad", "landing"],
+      };
+      return { strategy };
+    }),
+  createProject: protectedProcedure
+    .input(z.object({ name: z.string(), strategy: z.any(), selectedAssets: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      return {
+        id: crypto.randomUUID(),
+        name: input.name,
+        campaign_score: 0,
+        assets: [],
+      };
+    }),
+  generateCampaign: protectedProcedure
+    .input(z.object({ projectId: z.string(), strategyJson: z.any(), selectedAssets: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      return { success: true };
+    }),
+  updateAsset: protectedProcedure
+    .input(z.object({ assetId: z.string(), content: z.any().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      return {
+        id: input.assetId,
+        type: "blog",
+        versionNumber: 2,
+        contentJson: input.content || {},
+        status: "ready",
+        regen_count: 1,
+      };
+    }),
+  publishAsset: protectedProcedure
+    .input(z.object({ assetId: z.string(), platform: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return { success: true };
+    }),
 });
 
 const campaignsRouter = router({
