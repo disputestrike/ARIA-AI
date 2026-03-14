@@ -13,6 +13,7 @@ import { registerStripeRoutes } from "../stripe/routes";
 import { registerSocialOAuthRoutes } from "../integrations/socialOAuth";
 import { startPublisherCron } from "../scheduler/publisherCron";
 import { uploadRouter } from "../upload";
+import { runMigrations } from "./migrate";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -34,6 +35,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Run database migrations first (before app initializes)
+  // This allows DATABASE_URL to resolve at runtime on Railway
+  await runMigrations();
+
   const app = express();
   const server = createServer(app);
 
