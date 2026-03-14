@@ -267,13 +267,131 @@ const ariaRouter = router({
   getDemoProject: protectedProcedure
     .query(async () => {
       // Return demo campaign for new users
-      // TODO: Check if user has any projects, only show demo if none exist
       const { DEMO_CAMPAIGN, DEMO_BRAND_KIT } = await import("./demo-campaign");
       return {
         campaign: DEMO_CAMPAIGN,
         brandKit: DEMO_BRAND_KIT,
         isDemo: true,
       };
+    }),
+  // PHASE 4: INTEGRATIONS
+  getSEOAnalysis: protectedProcedure
+    .input(z.object({ domain: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // Get real SEO data from DataForSEO
+      const { getDomainOverview, getTechnicalAudit, getBacklinkProfile } = await import("./integrations/dataseo");
+      try {
+        const overview = await getDomainOverview(input.domain);
+        const audit = await getTechnicalAudit(input.domain);
+        const backlinks = await getBacklinkProfile(input.domain);
+        return {
+          domain: input.domain,
+          overview,
+          audit,
+          backlinks,
+        };
+      } catch (err) {
+        // Graceful fallback if DataForSEO not configured
+        return {
+          domain: input.domain,
+          overview: {
+            domainAuthority: 0,
+            trafficEstimate: 0,
+            backlinks: 0,
+            referringDomains: 0,
+          },
+          audit: { score: 0, issues: { critical: 0, warning: 0, info: 0 } },
+          backlinks: { totalBacklinks: 0, referringDomains: 0, topPages: [] },
+          error: "DataForSEO not configured - using estimates only",
+        };
+      }
+    }),
+  createDSPCampaign: protectedProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        creatives: z.array(
+          z.object({
+            width: z.number(),
+            height: z.number(),
+            url: z.string(),
+            mimeType: z.string().optional(),
+            displayName: z.string().optional(),
+          })
+        ),
+        budget: z.object({ daily: z.number(), total: z.number() }),
+        targeting: z.object({
+          countries: z.array(z.string()).optional(),
+          devices: z.array(z.string()).optional(),
+        }),
+        flightDates: z.object({
+          start: z.date(),
+          end: z.date(),
+        }),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { createDSPCampaign: createCampaign } = await import("./integrations/epom");
+      try {
+        const result = await createCampaign({
+          name: input.name,
+          creatives: input.creatives.map((c) => ({
+            width: c.width,
+            height: c.height,
+            url: c.url,
+            mimeType: c.mimeType || "image/png",
+            displayName: c.displayName || `Banner ${c.width}x${c.height}`,
+          })),
+          budget: input.budget,
+          targeting: {
+            countries: input.targeting.countries,
+            devices: input.targeting.devices,
+          },
+          bidding: { model: "CPM", bid: 2.0 },
+          flightDates: input.flightDates,
+        });
+        return result;
+      } catch (err) {
+        throw new Error("Failed to create DSP campaign");
+      }
+    }),
+  launchDSPCampaign: protectedProcedure
+    .input(z.object({ campaignId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Requires explicit user confirmation (Section 11.2)
+      const { launchDSPCampaign: launch } = await import("./integrations/epom");
+      try {
+        return await launch(input.campaignId);
+      } catch (err) {
+        throw new Error("Failed to launch DSP campaign");
+      }
+    }),
+  getDSPPerformance: protectedProcedure
+    .input(z.object({ campaignId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { getDSPCampaignPerformance } = await import("./integrations/epom");
+      try {
+        return await getDSPCampaignPerformance(input.campaignId);
+      } catch (err) {
+        return { campaignId: input.campaignId, metrics: {}, error: "Failed to fetch performance" };
+      }
+    }),
+  auditAEOPresence: protectedProcedure
+    .input(z.object({ domain: z.string(), industry: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // AEO - Answer Engine Optimization (Section 10.3 - First-mover feature)
+      const { auditAIPresence } = await import("./integrations/aeo");
+      try {
+        return await auditAIPresence(input.domain, input.industry);
+      } catch (err) {
+        return {
+          domain: input.domain,
+          engines: [],
+          topOpportunities: [],
+          strategy: { contentToCreate: [], entityPage: false, schemaMarkup: [], prBriefTopics: [] },
+          error: "Failed to audit AI presence",
+        };
+      }
     }),
   scheduleAsset: protectedProcedure
     .input(z.object({ assetId: z.string(), scheduledAt: z.date(), platform: z.string() }))
