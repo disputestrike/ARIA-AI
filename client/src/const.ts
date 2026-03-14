@@ -17,7 +17,12 @@ export const getLoginUrl = (provider?: string) => {
     return url.toString();
   }
 
-  // Fallback for other providers (not yet implemented)
+  // Default to Google if no provider specified
+  if (!provider) {
+    return getLoginUrl("google");
+  }
+
+  // Unsupported provider
   throw new Error(`Provider ${provider} not yet implemented`);
 };
 
