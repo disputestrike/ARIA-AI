@@ -1007,3 +1007,50 @@ export const billingTransactions = mysqlTable("billingTransactions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 export type BillingTransaction = typeof billingTransactions.$inferSelect;
+
+// ─── ARIA: PROJECTS (Campaigns) ────────────────────────────────────────────
+export const projects = mysqlTable("projects", {
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
+  userId: int("userId").notNull(),
+  name: text("name").notNull(),
+  status: mysqlEnum("status", ["draft", "active", "archived"]).default("draft").notNull(),
+  strategy_json: json("strategy_json"), // Full StrategyAgent output
+  campaign_score: int("campaign_score").default(0),
+  version_number: int("version_number").default(1).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+// ─── ARIA: PROJECT ASSETS ─────────────────────────────────────────────────
+export const projectAssets = mysqlTable("projectAssets", {
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
+  projectId: varchar("projectId", { length: 36 }).notNull(),
+  type: varchar("type", { length: 100 }).notNull(), // "blog", "email", "video", "ad", etc
+  version_number: int("version_number").default(1).notNull(),
+  parent_id: varchar("parent_id", { length: 36 }), // For versioning chain
+  content_json: json("content_json"),
+  status: mysqlEnum("status", ["generating", "ready", "published", "failed", "scheduled"]).default("generating").notNull(),
+  published_url: text("published_url"),
+  scheduled_at: timestamp("scheduled_at"),
+  platform: varchar("platform", { length: 100 }),
+  regen_count: int("regen_count").default(0).notNull(),
+  storage_url: text("storage_url"), // S3/CDN URL for binary assets
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type ProjectAsset = typeof projectAssets.$inferSelect;
+export type InsertProjectAsset = typeof projectAssets.$inferInsert;
+
+// ─── ARIA: CAMPAIGN VERSIONS (Full Folder Snapshots) ──────────────────────
+export const campaignVersions = mysqlTable("campaignVersions", {
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
+  projectId: varchar("projectId", { length: 36 }).notNull(),
+  version_number: int("version_number").notNull(),
+  label: varchar("label", { length: 255 }), // User label e.g. "Before rebrand"
+  snapshot_data: json("snapshot_data").notNull(), // Full strategy + all assets
+  created_by: varchar("created_by", { length: 255 }).default("system"), // "system" or user_id
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type CampaignVersion = typeof campaignVersions.$inferSelect;
+export type InsertCampaignVersion = typeof campaignVersions.$inferInsert;

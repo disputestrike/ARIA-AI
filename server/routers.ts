@@ -8,7 +8,7 @@ import {
   dspCampaigns, emailSequences, emailSends, formSubmissions, forms, funnels,
   integrations, landingPages, products, reports, reviews, scheduledPosts,
   seoAudits, subscriptions, teamMembers, contentTemplates, userMemory, userSettings,
-  users, videoAds, approvalWorkflows, reviewSources,
+  users, videoAds, approvalWorkflows, reviewSources, projects, projectAssets, campaignVersions,
 } from "../drizzle/schema";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -97,46 +97,183 @@ const ariaRouter = router({
   researchBrand: protectedProcedure
     .input(z.object({ input: z.string(), entryPoint: z.enum(["new", "existing", "task", "clarify"]) }))
     .mutation(async ({ ctx, input }) => {
+      // TODO: Call real StrategyAgent with web research
+      // For now, return mock strategy
       const strategy = {
         brandName: "Your Brand",
         positioning: "Market leader in your industry",
-        audience: ["Entrepreneurs"],
-        channels: ["social", "email", "content"],
-        recommendedAssets: ["blog", "email", "social", "ad", "landing"],
+        audience: ["Entrepreneurs", "Business Owners"],
+        channels: ["social", "email", "content", "ad"],
+        recommendedAssets: ["blog", "email", "social", "ad", "landing", "seo"],
+        competitors: [],
+        tone: "professional",
       };
       return { strategy };
     }),
   createProject: protectedProcedure
     .input(z.object({ name: z.string(), strategy: z.any(), selectedAssets: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      
+      const projectId = crypto.randomUUID();
+      
+      // Insert project
+      await db.insert(projects).values({
+        id: projectId,
+        userId: ctx.user.id,
+        name: input.name,
+        strategy_json: input.strategy,
+        status: "draft",
+      });
+      
+      // Create placeholder assets for selected types
+      const assets = [];
+      for (const assetType of input.selectedAssets) {
+        const assetId = crypto.randomUUID();
+        await db.insert(projectAssets).values({
+          id: assetId,
+          projectId,
+          type: assetType,
+          status: "generating",
+        });
+        assets.push({
+          id: assetId,
+          type: assetType,
+          status: "generating",
+          versionNumber: 1,
+        });
+      }
+      
       return {
-        id: crypto.randomUUID(),
+        id: projectId,
         name: input.name,
         campaign_score: 0,
-        assets: [],
+        assets,
       };
     }),
   generateCampaign: protectedProcedure
     .input(z.object({ projectId: z.string(), strategyJson: z.any(), selectedAssets: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
+      // TODO: Queue DAG execution via BullMQ
+      // This would enqueue the 11-agent pipeline
       return { success: true };
     }),
   updateAsset: protectedProcedure
     .input(z.object({ assetId: z.string(), content: z.any().optional() }))
     .mutation(async ({ ctx, input }) => {
-      return {
-        id: input.assetId,
-        type: "blog",
-        versionNumber: 2,
-        contentJson: input.content || {},
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      
+      // Get current asset
+      const [current] = await db.select().from(projectAssets).where(eq(projectAssets.id, input.assetId));
+      if (!current) throw new Error("Asset not found");
+      
+      // Create new version
+      const newVersionId = crypto.randomUUID();
+      const newVersion = (current.version_number || 1) + 1;
+      
+      await db.insert(projectAssets).values({
+        id: newVersionId,
+        projectId: current.projectId,
+        type: current.type,
+        version_number: newVersion,
+        parent_id: input.assetId,
+        content_json: input.content || current.content_json,
         status: "ready",
-        regen_count: 1,
+        regen_count: (current.regen_count || 0) + 1,
+      });
+      
+      return {
+        id: newVersionId,
+        type: current.type,
+        versionNumber: newVersion,
+        contentJson: input.content || current.content_json,
+        status: "ready",
+        regen_count: (current.regen_count || 0) + 1,
       };
     }),
   publishAsset: protectedProcedure
     .input(z.object({ assetId: z.string(), platform: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+      
+      // Update asset status to published
+      await db.update(projectAssets)
+        .set({
+          status: "published",
+          platform: input.platform,
+          published_url: `https://${input.platform}.com/post/123`, // TODO: Real URL
+        })
+        .where(eq(projectAssets.id, input.assetId));
+      
       return { success: true };
+    }),
+  saveBrandKit: protectedProcedure
+    .input(z.object({
+      logoUrl: z.string().optional(),
+      primaryColor: z.string(),
+      secondaryColor: z.string(),
+      fontFamily: z.string(),
+      tone_of_voice: z.string(),
+      brand_keywords: z.array(z.string()),
+      competitor_exclusions: z.array(z.string()),
+      target_audience: z.string(),
+      presenter_profile: z.any().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Check if brand kit exists for this user
+      const [existing] = await db.select().from(brandKits)
+        .where(eq(brandKits.userId, ctx.user.id))
+        .limit(1);
+
+      if (existing) {
+        // Update existing - use only fields that exist in the schema
+        await db.update(brandKits)
+          .set({
+            primaryColor: input.primaryColor,
+            secondaryColor: input.secondaryColor,
+            primaryFont: input.fontFamily,
+            logoUrl: input.logoUrl,
+          })
+          .where(eq(brandKits.userId, ctx.user.id));
+      } else {
+        // Insert new
+        await db.insert(brandKits).values({
+          userId: ctx.user.id,
+          name: "My Brand Kit",
+          primaryColor: input.primaryColor,
+          secondaryColor: input.secondaryColor,
+          primaryFont: input.fontFamily,
+          logoUrl: input.logoUrl,
+          isDefault: true,
+        });
+      }
+
+      return { success: true };
+    }),
+  getBrandKit: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return null;
+
+      const [kit] = await db.select().from(brandKits).where(eq(brandKits.userId, ctx.user.id));
+      return kit || null;
+    }),
+  getDemoProject: protectedProcedure
+    .query(async () => {
+      // Return demo campaign for new users
+      // TODO: Check if user has any projects, only show demo if none exist
+      const { DEMO_CAMPAIGN, DEMO_BRAND_KIT } = await import("./demo-campaign");
+      return {
+        campaign: DEMO_CAMPAIGN,
+        brandKit: DEMO_BRAND_KIT,
+        isDemo: true,
+      };
     }),
 });
 

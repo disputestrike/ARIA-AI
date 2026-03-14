@@ -9,8 +9,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
   Sparkles, Send, Download, Copy, Edit3, Trash2, Clock, CheckCircle,
-  AlertCircle, ChevronLeft, Menu, X, LogOut, ArrowRight
+  AlertCircle, ChevronLeft, Menu, X, LogOut, ArrowRight, Settings
 } from "lucide-react";
+import { BrandKitModal } from "@/components/BrandKitModal";
 
 // TYPES
 interface BriefData {
@@ -40,7 +41,14 @@ interface Project {
   id: string;
   name: string;
   campaign_score: number;
-  assets: ProjectAsset[];
+  assets: Array<{
+    id: string;
+    type: string;
+    status: string;
+    versionNumber: number;
+    contentJson?: any;
+    regen_count?: number;
+  }>;
 }
 
 type Step = "brief" | "checklist" | "folder";
@@ -59,6 +67,8 @@ export default function ARIA() {
   const [project, setProject] = useState<Project | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [isBrandKitModalOpen, setIsBrandKitModalOpen] = useState(false);
+  const [brandKit, setBrandKit] = useState<any>(null);
 
   // tRPC
   const researchMutation = trpc.aria.researchBrand.useMutation();
@@ -66,6 +76,15 @@ export default function ARIA() {
   const generateMutation = trpc.aria.generateCampaign.useMutation();
   const updateAssetMutation = trpc.aria.updateAsset.useMutation();
   const publishAssetMutation = trpc.aria.publishAsset.useMutation();
+  const saveBrandKitMutation = trpc.aria.saveBrandKit.useMutation();
+  const getBrandKitQuery = trpc.aria.getBrandKit.useQuery(undefined, { enabled: !!user });
+
+  // Load brand kit on mount
+  useEffect(() => {
+    if (getBrandKitQuery.data) {
+      setBrandKit(getBrandKitQuery.data);
+    }
+  }, [getBrandKitQuery.data]);
 
   const detectEntryPoint = (input: string) => {
     const lower = input.toLowerCase();
@@ -192,12 +211,12 @@ export default function ARIA() {
     }
   };
 
-  const handleCopyAsset = (asset: ProjectAsset) => {
+  const handleCopyAsset = (asset: any) => {
     navigator.clipboard.writeText(JSON.stringify(asset.contentJson));
     toast.success("Copied!");
   };
 
-  const handleDownloadAsset = (asset: ProjectAsset) => {
+  const handleDownloadAsset = (asset: any) => {
     const content = JSON.stringify(asset.contentJson, null, 2);
     const el = document.createElement("a");
     el.href = `data:text/plain;charset=utf-8,${encodeURIComponent(content)}`;
@@ -205,10 +224,27 @@ export default function ARIA() {
     el.click();
   };
 
+  const handleSaveBrandKit = async (data: any) => {
+    try {
+      await saveBrandKitMutation.mutateAsync(data);
+      setBrandKit(data);
+      toast.success("Brand Kit saved!");
+    } catch (err) {
+      toast.error("Failed to save Brand Kit");
+      throw err;
+    }
+  };
+
   // STEP 1: BRIEF
   if (step === "brief") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
+        <BrandKitModal
+          isOpen={isBrandKitModalOpen}
+          onClose={() => setIsBrandKitModalOpen(false)}
+          initialData={brandKit}
+          onSave={handleSaveBrandKit}
+        />
         <div className="max-w-2xl w-full">
           <div className="text-center mb-12">
             <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663191442451/Xo3BLWEeUiTMAmf4aBe7Nf/aria-logo_1be63f43.png" alt="ARIA" className="w-12 h-12 mx-auto mb-4" />
@@ -217,9 +253,18 @@ export default function ARIA() {
           </div>
 
           <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              What do you want to build?
-            </label>
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-slate-700">
+                What do you want to build?
+              </label>
+              <button
+                onClick={() => setIsBrandKitModalOpen(true)}
+                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
+              >
+                <Settings className="h-4 w-4" />
+                Brand Kit
+              </button>
+            </div>
             <Textarea
               value={briefData.input}
               onChange={(e) => setBriefData((prev) => ({ ...prev, input: e.target.value }))}
