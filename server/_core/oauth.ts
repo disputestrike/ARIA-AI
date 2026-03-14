@@ -97,7 +97,15 @@ export function registerOAuthRoutes(app: Express) {
 
       // Set session cookie and redirect to dashboard
       const cookieOptions = getSessionCookieOptions(req);
+      console.log("[OAuth] Setting session cookie with options:", cookieOptions);
+      console.log("[OAuth] Cookie name:", COOKIE_NAME);
+      console.log("[OAuth] Session token:", sessionToken.substring(0, 20) + "...");
+      console.log("[OAuth] Request origin:", req.get("origin"));
+      console.log("[OAuth] Request hostname:", req.hostname);
+      
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      
+      console.log("[OAuth] Cookie set, redirecting to /aria");
       res.redirect(302, "/aria");
     } catch (error) {
       console.error("[OAuth] Callback failed:", error);
