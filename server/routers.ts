@@ -8,7 +8,7 @@ import {
   dspCampaigns, emailSequences, emailSends, formSubmissions, forms, funnels,
   integrations, landingPages, products, reports, reviews, scheduledPosts,
   seoAudits, subscriptions, teamMembers, contentTemplates, userMemory, userSettings,
-  users, videoAds, approvalWorkflows, reviewSources, projects, projectAssets, campaignVersions,
+  users, videoAds, approvalWorkflows, reviewSources, projects, projectAssets, campaignVersions, userMonthlyUsage,
 } from "../drizzle/schema";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -274,6 +274,93 @@ const ariaRouter = router({
         brandKit: DEMO_BRAND_KIT,
         isDemo: true,
       };
+    }),
+  scheduleAsset: protectedProcedure
+    .input(z.object({ assetId: z.string(), scheduledAt: z.date(), platform: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database unavailable");
+
+      // Update asset with scheduled time
+      await db.update(projectAssets)
+        .set({
+          status: "scheduled",
+          scheduled_at: input.scheduledAt,
+          platform: input.platform,
+        })
+        .where(eq(projectAssets.id, input.assetId));
+
+      // TODO: Queue scheduled job in BullMQ
+      return { success: true, scheduledAt: input.scheduledAt };
+    }),
+  generateShareLink: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Generate unique token for public viewing
+      const token = crypto.randomUUID();
+      const shareUrl = `${process.env.PUBLIC_URL || "http://localhost:3000"}/share/${token}`;
+
+      // TODO: Store token in database with projectId, expiration, permissions
+      return { shareUrl };
+    }),
+  checkCampaignLimit: protectedProcedure
+    .query(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) return { canCreate: false, used: 0, limit: 1 };
+
+      // Get user's subscription tier
+      const [user] = await db.select().from(users).where(eq(users.id, ctx.user.id));
+      if (!user) return { canCreate: false, used: 0, limit: 1 };
+
+      const tier = user.subscriptionTier || "free";
+      const { getCampaignLimit } = await import("./tier-config");
+      const limit = getCampaignLimit(tier as any);
+
+      // Count campaigns created this month
+      const currentMonth = new Date().toISOString().substring(0, 7); // YYYY-MM
+      const [monthData] = await db.select().from(userMonthlyUsage)
+        .where(
+          and(
+            eq(userMonthlyUsage.userId, ctx.user.id),
+            eq(userMonthlyUsage.month, currentMonth)
+          )
+        );
+
+      const used = monthData?.aiGenerationsUsed || 0;
+      const canCreate = limit === Infinity || used < limit;
+
+      return { canCreate, used, limit, tier };
+    }),
+  incrementCampaignUsage: protectedProcedure
+    .input(z.object({ projectId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { success: false };
+
+      const currentMonth = new Date().toISOString().substring(0, 7);
+
+      // Get or create monthly usage record
+      const [existing] = await db.select().from(userMonthlyUsage)
+        .where(
+          and(
+            eq(userMonthlyUsage.userId, ctx.user.id),
+            eq(userMonthlyUsage.month, currentMonth)
+          )
+        );
+
+      if (existing) {
+        await db.update(userMonthlyUsage)
+          .set({ aiGenerationsUsed: (existing.aiGenerationsUsed || 0) + 1 })
+          .where(eq(userMonthlyUsage.id, existing.id));
+      } else {
+        await db.insert(userMonthlyUsage).values({
+          userId: ctx.user.id,
+          month: currentMonth,
+          aiGenerationsUsed: 1,
+        });
+      }
+
+      return { success: true };
     }),
 });
 

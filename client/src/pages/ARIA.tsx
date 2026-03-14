@@ -9,9 +9,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import {
   Sparkles, Send, Download, Copy, Edit3, Trash2, Clock, CheckCircle,
-  AlertCircle, ChevronLeft, Menu, X, LogOut, ArrowRight, Settings
+  AlertCircle, ChevronLeft, Menu, X, LogOut, ArrowRight, Settings, Share2
 } from "lucide-react";
 import { BrandKitModal } from "@/components/BrandKitModal";
+import { SchedulerModal } from "@/components/SchedulerModal";
+import { ClientShareModal } from "@/components/ClientShareModal";
 
 // TYPES
 interface BriefData {
@@ -69,6 +71,10 @@ export default function ARIA() {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isBrandKitModalOpen, setIsBrandKitModalOpen] = useState(false);
   const [brandKit, setBrandKit] = useState<any>(null);
+  const [isSchedulerModalOpen, setIsSchedulerModalOpen] = useState(false);
+  const [schedulerAssetId, setSchedulerAssetId] = useState<string | null>(null);
+  const [schedulerPlatform, setSchedulerPlatform] = useState("");
+  const [isClientShareModalOpen, setIsClientShareModalOpen] = useState(false);
 
   // tRPC
   const researchMutation = trpc.aria.researchBrand.useMutation();
@@ -85,6 +91,11 @@ export default function ARIA() {
       setBrandKit(getBrandKitQuery.data);
     }
   }, [getBrandKitQuery.data]);
+
+  const scheduleAssetMutation = trpc.aria.scheduleAsset.useMutation();
+  const generateShareLinkMutation = trpc.aria.generateShareLink.useMutation();
+  const checkCampaignLimitQuery = trpc.aria.checkCampaignLimit.useQuery();
+  const incrementUsageMutation = trpc.aria.incrementCampaignUsage.useMutation();
 
   const detectEntryPoint = (input: string) => {
     const lower = input.toLowerCase();
@@ -224,6 +235,18 @@ export default function ARIA() {
     el.click();
   };
 
+  const handlePublishAsset = async (assetId: string, platform: string) => {
+    try {
+      await publishAssetMutation.mutateAsync({
+        assetId,
+        platform,
+      });
+      toast.success(`Published to ${platform}`);
+    } catch (err) {
+      toast.error("Failed to publish");
+    }
+  };
+
   const handleSaveBrandKit = async (data: any) => {
     try {
       await saveBrandKitMutation.mutateAsync(data);
@@ -233,6 +256,38 @@ export default function ARIA() {
       toast.error("Failed to save Brand Kit");
       throw err;
     }
+  };
+
+  const handleScheduleAsset = async (assetId: string, scheduledAt: Date) => {
+    try {
+      const platform = schedulerPlatform || "twitter";
+      await scheduleAssetMutation.mutateAsync({
+        assetId,
+        scheduledAt,
+        platform,
+      });
+      setIsSchedulerModalOpen(false);
+      toast.success(`Scheduled for ${scheduledAt.toLocaleString()}`);
+    } catch (err) {
+      toast.error("Failed to schedule asset");
+      throw err;
+    }
+  };
+
+  const handleGenerateShareLink = async (projectId: string) => {
+    try {
+      const result = await generateShareLinkMutation.mutateAsync({ projectId });
+      return result.shareUrl;
+    } catch (err) {
+      toast.error("Failed to generate share link");
+      throw err;
+    }
+  };
+
+  const openSchedulerModal = (assetId: string, platform: string = "twitter") => {
+    setSchedulerAssetId(assetId);
+    setSchedulerPlatform(platform);
+    setIsSchedulerModalOpen(true);
   };
 
   // STEP 1: BRIEF
@@ -388,6 +443,20 @@ export default function ARIA() {
   // STEP 3: FOLDER
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      <SchedulerModal
+        isOpen={isSchedulerModalOpen}
+        onClose={() => setIsSchedulerModalOpen(false)}
+        assetId={schedulerAssetId || ""}
+        platform={schedulerPlatform}
+        onSchedule={handleScheduleAsset}
+      />
+      <ClientShareModal
+        isOpen={isClientShareModalOpen}
+        onClose={() => setIsClientShareModalOpen(false)}
+        projectId={project?.id || ""}
+        projectName={project?.name || ""}
+        onGenerateLink={handleGenerateShareLink}
+      />
       {/* Sidebar */}
       <div className={`${sidebarOpen ? "w-64" : "w-0"} border-r border-slate-200 bg-white transition-all overflow-hidden flex flex-col`}>
         <div className="p-4 border-b">
@@ -439,10 +508,20 @@ export default function ARIA() {
                 </Badge>
               )}
             </div>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Download All
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Download All
+              </Button>
+              <Button
+                onClick={() => setIsClientShareModalOpen(true)}
+                variant="outline"
+                size="sm"
+              >
+                <Share2 className="h-4 w-4 mr-2" />
+                Share
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -482,10 +561,18 @@ export default function ARIA() {
                   >
                     <Download className="h-4 w-4" />
                   </button>
-                  <button className="p-2 text-slate-600 hover:bg-white rounded flex items-center justify-center">
-                    <Edit3 className="h-4 w-4" />
+                  <button
+                    onClick={() => openSchedulerModal(asset.id, "twitter")}
+                    className="p-2 text-slate-600 hover:bg-white rounded flex items-center justify-center"
+                    title="Schedule"
+                  >
+                    <Clock className="h-4 w-4" />
                   </button>
-                  <button className="p-2 text-slate-600 hover:bg-white rounded flex items-center justify-center">
+                  <button
+                    onClick={() => handlePublishAsset(asset.id, "twitter")}
+                    className="p-2 text-slate-600 hover:bg-white rounded flex items-center justify-center"
+                    title="Publish"
+                  >
                     <Send className="h-4 w-4" />
                   </button>
                 </div>
