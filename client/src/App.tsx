@@ -4,7 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ARIA from "./pages/ARIA";
+import ChatInterface from "./pages/ChatInterface";
 import LandingPagePublic from "./pages/LandingPagePublic";
 import ReportPublic from "./pages/ReportPublic";
 import FormPublic from "./pages/FormPublic";
@@ -17,7 +17,7 @@ function Router() {
       <Route path={"/p/:slug"} component={LandingPagePublic} />
       <Route path={"/report/:token"} component={ReportPublic} />
       <Route path={"/form/:slug"} component={FormPublic} />
-      <Route path={"/aria"} component={ARIA} />
+      <Route path={"/aria"} component={ChatInterface} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
