@@ -95,10 +95,10 @@ export function registerOAuthRoutes(app: Express) {
         expiresInMs: ONE_YEAR_MS,
       });
 
-      // Set session cookie and redirect home
+      // Set session cookie and redirect to dashboard
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      res.redirect(302, "/");
+      res.redirect(302, "/aria");
     } catch (error) {
       console.error("[OAuth] Callback failed:", error);
       res.redirect(302, `/?error=${encodeURIComponent("Authentication failed")}`);
