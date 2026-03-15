@@ -393,3 +393,5 @@ export function AriaMainInterface() {
 
   return null;
 }
+
+export default AriaMainInterface;
